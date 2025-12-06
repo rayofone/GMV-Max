@@ -246,7 +246,7 @@ export default function CreateCampaign() {
                       className="mb-4 bg-info-light text-dark border-0"
                     >
                       Your campaign is eligible for ROI protection. You will
-                      receive an ad credit if 90% of your target ROI isn't met
+                      receive an ad credit if 90% of your target ROI is not met
                       and your campaign meets other eligibility criteria.
                       <a href="#" className="text-primary">
                         {" "}
@@ -300,9 +300,9 @@ export default function CreateCampaign() {
                             ROI target recommendations are based on real-time
                             market data and your historical ROI settings. They
                             are designed to help you increase your gross
-                            revenue. -Product ROI is the product's total gross
-                            revenue (not including LIVE) divided by the ad cost
-                            -You can choose whether or not to adopt these
+                            revenue. -Product ROI is the product`&apos;`s total
+                            gross revenue (not including LIVE) divided by the ad
+                            cost -You can choose whether or not to adopt these
                             recommendations based on your specific business
                             situation and profit margins
                           </p>
@@ -422,7 +422,7 @@ export default function CreateCampaign() {
                       Ad creative
                       <Link
                         className="btn btn-secondary btn-sm float-end"
-                        href="/campaigns/managecreatives"
+                        href="/sectionmodules/managecreatives"
                       >
                         Edit
                       </Link>
