@@ -25,18 +25,19 @@ import {
   CircleQuestionMark,
   X,
 } from "lucide-react";
-
-// Type definitions
-interface Creative {
-  id: number;
-  type: string;
-  preview: string;
-  video: string;
-  name: string;
-  shop: string;
-}
+import { useFirebase, type Creative } from "@/contexts/FirebaseContext";
 
 export default function ManageCreatives() {
+  // Get data from Firebase context
+  const {
+    accounts: availableAccounts,
+    accountsLoading,
+    accountsError,
+    creatives: availableCreatives,
+    creativesLoading,
+    creativesError,
+  } = useFirebase();
+
   const inputRef = useRef<HTMLInputElement>(null);
   const [autoMode, setAutoMode] = useState(true);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -44,7 +45,9 @@ export default function ManageCreatives() {
   const [TikTokPostsTab, setTikTokPostsTab] = useState(true);
   const [AffiliatesTab, setAffiliatesTab] = useState(false);
   // VIDEO ERROR STATES
-  const [videoErrors, setVideoErrors] = useState<Set<number>>(new Set());
+  const [videoErrors, setVideoErrors] = useState<Set<string | number>>(
+    new Set()
+  );
 
   const handleTikTokPostsClick = () => {
     setTikTokPostsTab(true);
@@ -62,18 +65,10 @@ export default function ManageCreatives() {
   // SEARCH ACCOUNT STATES
   const [searchTerm, setSearchTerm] = useState("");
 
-  // EXCLUDE STATES
-  const [excludedCreativeIds, setExcludedCreativeIds] = useState<number[]>([]);
-
-  // SEARCH FUNCTIONALITY
-  // 1. Defined data structure
-  const availableAccounts = [
-    { name: "TikTok account", type: "Offical" },
-    { name: "TikTok account 2", type: "Marketing account" },
-    { name: "TikTok account 3", type: "Marketing account" },
-    { name: "TikTok account 4", type: "Marketing account" },
-    { name: "TikTok account 5", type: "Marketing account" },
-  ];
+  // EXCLUDE STATES - Store as strings to handle both string and number IDs
+  const [excludedCreativeIds, setExcludedCreativeIds] = useState<
+    (string | number)[]
+  >([]);
 
   // SEARCH FUNCTIONALITY ACCOUNTS
   // 2. Filter data based on search term
@@ -92,90 +87,7 @@ export default function ManageCreatives() {
     setAutoMode(value);
   };
 
-  // CREATIVES DATA
-  // 1. Defined data structure
-  const availableCreatives = [
-    {
-      id: 32165498778,
-      type: "Authorized",
-      preview: "Creative Preview 1",
-      video: "/creatives/test.mp4",
-      name: "Summer Sale Ad",
-      shop: "Shop A",
-    },
-    {
-      id: 98789654456,
-      type: "Affiliate",
-      preview: "Creative Preview 2",
-      video: "/creatives/sesame.mp4",
-      name: "Winter Collection Ad",
-      shop: "Shop B",
-    },
-    {
-      id: 35638794562,
-      type: "Customized",
-      preview: "Creative Preview 3",
-      video: "/creatives/test-stream-upload.mp4",
-      name: "Spring Launch Ad",
-      shop: "Shop C",
-    },
-    {
-      id: 41236549877,
-      type: "Uploaded",
-      preview: "Creative Preview 4",
-      video: "/creatives/Spoon_03.mov",
-      name: "Fall Promotion Ad",
-      shop: "Shop D",
-    },
-    {
-      id: 52165498779,
-      type: "Authorized",
-      preview: "Creative Preview 5",
-      video: "/creatives/",
-      name: "Holiday Specials Ad",
-      shop: "Shop E",
-    },
-    {
-      id: 28654123899,
-      type: "Affiliate",
-      preview: "Creative Preview 6",
-      video: "/creatives/",
-      name: "Black Friday Ad",
-      shop: "Shop F",
-    },
-    {
-      id: 87945213453,
-      type: "Customized",
-      preview: "Creative Preview 7",
-      video: "/creatives/",
-      name: "Cyber Monday Ad",
-      shop: "Shop G",
-    },
-    {
-      id: 44445687888,
-      type: "Uploaded",
-      preview: "Creative Preview 8",
-      video: "/creatives/",
-      name: "New Year Sale Ad",
-      shop: "Shop H",
-    },
-    {
-      id: 11233211233,
-      type: "Authorized",
-      preview: "Creative Preview 9",
-      video: "/creatives/",
-      name: "Valentine's Day Ad",
-      shop: "Shop I",
-    },
-    {
-      id: 26664558545,
-      type: "Affiliate",
-      preview: "Creative Preview 10",
-      video: "/creatives/",
-      name: "Easter Promotion Ad",
-      shop: "Shop J",
-    },
-  ];
+  // CREATIVES DATA - Now fetched from Firebase (see useEffect above)
 
   // SEARCH FUNCTIONALITY CREATIVES
   // 2. Filter data based on search term
@@ -197,7 +109,7 @@ export default function ManageCreatives() {
 
   // EXCLUDE FUNCTIONALITY
   // Handler to add/remove creative ID from the exclusion list
-  const handleCreativeToggle = (creativeId: number) => {
+  const handleCreativeToggle = (creativeId: string | number) => {
     setExcludedCreativeIds((prevIds) => {
       if (prevIds.includes(creativeId)) {
         // If present, remove it (re-include it)
@@ -237,7 +149,7 @@ export default function ManageCreatives() {
   };
 
   // 2. Removes a tag from the selected list
-  const handleRemoveTag = (id: number) => {
+  const handleRemoveTag = (id: string | number) => {
     setSelectedTags((prev) => prev.filter((tag) => tag.id !== id));
   };
 
@@ -290,7 +202,7 @@ export default function ManageCreatives() {
   };
 
   // HANDLER: Track video load errors
-  const handleVideoError = (creativeId: number) => {
+  const handleVideoError = (creativeId: string | number) => {
     setVideoErrors((prev) => new Set(prev).add(creativeId));
   };
 
@@ -488,7 +400,9 @@ export default function ManageCreatives() {
                               id="dropdown-basic"
                               className="btn-sm border-0"
                             >
-                              <span className="me-3">TikTok accounts (0)</span>
+                              <span className="me-3">
+                                TikTok accounts ({availableAccounts.length})
+                              </span>
                               <span className="mb-1">
                                 <ChevronDown size={16} strokeWidth={2} />
                               </span>
@@ -535,26 +449,52 @@ export default function ManageCreatives() {
                                           </Card.Text>
                                           {/* SEARCH FUNCTIONALITY */}
                                           {/* 5. Map over the filtered list */}
-                                          {filteredAccounts.map(
-                                            (account, index) => (
-                                              <div className="my-3" key={index}>
-                                                <input
-                                                  className="form-check-input me-2"
-                                                  type="checkbox"
-                                                  value=""
-                                                  id={`account-${index}`}
-                                                />
-                                                <label
-                                                  className="form-check-label text-muted"
-                                                  htmlFor={`account-${index}`}
+                                          {accountsLoading ? (
+                                            <div className="my-3 text-muted">
+                                              <small>Loading accounts...</small>
+                                            </div>
+                                          ) : accountsError ? (
+                                            <Alert
+                                              variant="warning"
+                                              className="my-3 py-2"
+                                            >
+                                              <small>{accountsError}</small>
+                                            </Alert>
+                                          ) : filteredAccounts.length > 0 ? (
+                                            filteredAccounts.map(
+                                              (account, index) => (
+                                                <div
+                                                  className="my-3"
+                                                  key={account.id || index}
                                                 >
-                                                  <small>{account.name}</small>
-                                                  <div className="badge bg-secondary text-muted ms-3">
-                                                    {account.type}
-                                                  </div>
-                                                </label>
-                                              </div>
+                                                  <input
+                                                    className="form-check-input me-2"
+                                                    type="checkbox"
+                                                    value=""
+                                                    id={`account-${
+                                                      account.id || index
+                                                    }`}
+                                                  />
+                                                  <label
+                                                    className="form-check-label text-muted"
+                                                    htmlFor={`account-${
+                                                      account.id || index
+                                                    }`}
+                                                  >
+                                                    <small>
+                                                      {account.name}
+                                                    </small>
+                                                    <div className="badge bg-secondary text-muted ms-3">
+                                                      {account.type}
+                                                    </div>
+                                                  </label>
+                                                </div>
+                                              )
                                             )
+                                          ) : (
+                                            <div className="my-3 text-muted">
+                                              <small>No accounts found.</small>
+                                            </div>
                                           )}
                                         </Card.Body>
                                       </Card>
@@ -1143,7 +1083,32 @@ export default function ManageCreatives() {
                       <Row className="gap-3 mt-4">
                         {TikTokPostsTab ? (
                           <>
-                            {creativesWithVideos.length > 0 ? (
+                            {creativesLoading ? (
+                              <Col size={12}>
+                                <Alert variant="info" className="text-center">
+                                  <CircleQuestionMark
+                                    strokeWidth={1.5}
+                                    size={24}
+                                    className="mb-2"
+                                  />
+                                  <p className="mb-0">Loading creatives...</p>
+                                </Alert>
+                              </Col>
+                            ) : creativesError ? (
+                              <Col size={12}>
+                                <Alert
+                                  variant="warning"
+                                  className="text-center"
+                                >
+                                  <CircleQuestionMark
+                                    strokeWidth={1.5}
+                                    size={24}
+                                    className="mb-2"
+                                  />
+                                  <p className="mb-0">{creativesError}</p>
+                                </Alert>
+                              </Col>
+                            ) : creativesWithVideos.length > 0 ? (
                               <Col size={12} className="d-flex flex-wrap gap-3">
                                 {creativesWithVideos.map((creative) => {
                                   const hasError = videoErrors.has(creative.id);

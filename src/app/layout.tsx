@@ -4,6 +4,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
 import SideNav from "./components/SideNav";
 import Header from "./components/Header";
+import FirebaseProviderWrapper from "./providers/FirebaseProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,13 +29,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <Header />
-        <div style={{ display: 'flex', flex: 1 }}>
-          <SideNav />
-          <div style={{ marginLeft: '0', flex: 1, width: '100%' }} className="content-wrapper">
-            {children}
+        <FirebaseProviderWrapper>
+          <Header />
+          <div style={{ display: 'flex', flex: 1 }}>
+            <SideNav />
+            <div style={{ marginLeft: '0', flex: 1, width: '100%' }} className="content-wrapper">
+              {children}
+            </div>
           </div>
-        </div>
+        </FirebaseProviderWrapper>
       </body>
     </html>
   );
