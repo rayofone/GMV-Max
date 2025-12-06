@@ -5,13 +5,18 @@ import { initializeApp } from "firebase/app";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCM06nT8uN6qP3pUbOPnaTYlEctDwCaYr4",
-  authDomain: "gmvmax-e9b2b.firebaseapp.com",
-  projectId: "gmvmax-e9b2b",
-  storageBucket: "gmvmax-e9b2b.firebasestorage.app",
-  messagingSenderId: "295318364682",
-  appId: "1:295318364682:web:31227e70fd90f67948f5f3"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || ""
 };
+
+// Validate that all required environment variables are set
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+  throw new Error("Missing required Firebase environment variables. Please check your .env.local file.");
+}
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
