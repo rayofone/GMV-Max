@@ -1,0 +1,91 @@
+.contentSideNav {
+  position: relative;
+  height: 100%;
+  background-color: #ffffff;
+  width: 60px;
+  transition: width 0.3s ease;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.contentSideNav:hover {
+  width: 220px;
+}
+
+.navContent {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  gap: 10px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 5px 15px;
+  color: rgba(0, 0, 0, 0.6);
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.navItem:hover {
+  background-color: #f0f0f0;
+}
+
+.icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  min-width: 100px;
+}
+
+.contentSideNav:hover .label {
+  opacity: 1;
+}
+
+/* Large viewports - always expanded */
+@media (min-width: 992px) {
+  .contentSideNav {
+    width: 220px;
+  }
+
+  .contentSideNav:hover {
+    width: 220px;
+  }
+
+  .label {
+    opacity: 1;
+  }
+}
+
+/* Medium viewports - collapse to 60px, expand on hover */
+@media (max-width: 991px) {
+  .contentSideNav {
+    width: 60px;
+  }
+
+  .contentSideNav:hover {
+    width: 220px;
+  }
+
+  .label {
+    opacity: 0;
+  }
+
+  .contentSideNav:hover .label {
+    opacity: 1;
+  }
+}

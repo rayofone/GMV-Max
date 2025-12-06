@@ -1,0 +1,94 @@
+.sideNav {
+  position: fixed;
+  left: 0;
+  top: 56px;
+  height: calc(100vh - 56px);
+  background-color: #ffffff;
+  width: 60px;
+  transition: width 0.3s ease;
+  overflow-y: auto;
+  z-index: 99;
+  display: flex;
+  flex-direction: column;
+}
+
+.sideNav:hover {
+  width: 220px;
+}
+
+.navContent {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  gap: 10px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 5px 15px;
+  color: rgba(0, 0, 0, 0.6);
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.navItem:hover {
+  background-color: #f0f0f0;
+}
+
+.icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  min-width: 100px;
+}
+
+.sideNav:hover .label {
+  opacity: 1;
+}
+
+/* Large viewports - always expanded */
+@media (min-width: 992px) {
+  .sideNav {
+    width: 220px;
+  }
+
+  .sideNav:hover {
+    width: 220px;
+  }
+
+  .label {
+    opacity: 1;
+  }
+}
+
+/* Medium viewports - collapse to 60px, expand on hover */
+@media (max-width: 991px) {
+  .sideNav {
+    width: 60px;
+  }
+
+  .sideNav:hover {
+    width: 220px;
+  }
+
+  .label {
+    opacity: 0;
+  }
+
+  .sideNav:hover .label {
+    opacity: 1;
+  }
+}
