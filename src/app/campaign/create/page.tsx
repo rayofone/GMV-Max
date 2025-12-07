@@ -16,7 +16,12 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { useShop } from "@/contexts/ShopContext";
-import { createCampaign, deleteCampaign, getCampaign, updateCampaign } from "@/lib/firebaseAdmin";
+import {
+  createCampaign,
+  deleteCampaign,
+  getCampaign,
+  updateCampaign,
+} from "@/lib/firebaseAdmin";
 import type { Shop } from "@/types/admin";
 
 export default function CreateCampaign() {
@@ -76,7 +81,7 @@ export default function CreateCampaign() {
       const params = new URLSearchParams(window.location.search);
       const urlCampaignId = params.get("campaignId");
       const createNew = params.get("createNew");
-      
+
       if (urlCampaignId && urlCampaignId !== campaignId) {
         // Load existing campaign and pre-fill form
         setCampaignId(urlCampaignId);
@@ -99,38 +104,52 @@ export default function CreateCampaign() {
     }
   }, [selectedShopId, formData.shop]);
 
-  // Create campaign automatically when coming from "Create GMV Max ads"
+  // Create campaign immediately when coming from "Create GMV Max ads"
   useEffect(() => {
     const createCampaignOnLoad = async () => {
       if (
         shouldCreateOnLoad &&
         currentUser &&
         userData &&
-        shops.length > 0 &&
+        selectedShopId &&
+        availableShops.length > 0 &&
+        accounts.length > 0 &&
         !campaignId
       ) {
         try {
-          const firstShop = shops[0];
+          const selectedShop = availableShops.find(
+            (s) => s.id === selectedShopId
+          );
+          if (!selectedShop) {
+            setError("Please select a shop first");
+            return;
+          }
+
           const shopAccounts = accounts.filter((acc) =>
-            acc.shops?.includes(firstShop.id || "")
+            acc.shops?.includes(selectedShop.id || "")
           );
           const firstAccount = shopAccounts[0];
 
-          if (firstShop && firstAccount) {
-            const newCampaignId = await createCampaign({
-              name: `GMV Max Campaign - ${new Date().toLocaleDateString()}`,
-              type: pgm ? "products" : "LIVE",
-              shop: firstShop.id || "",
-              account: firstAccount.id || "",
-              userId: currentUser.uid,
-            });
-            setCampaignId(newCampaignId);
-            setFormData((prev) => ({
-              ...prev,
-              shop: firstShop.id || "",
-              account: firstAccount.id || "",
-            }));
+          if (!firstAccount || !firstAccount.id) {
+            setError("No account found for the selected shop");
+            return;
           }
+
+          // Create campaign immediately
+          const newCampaignId = await createCampaign({
+            name: `GMV Max Campaign - ${new Date().toLocaleDateString()}`,
+            type: pgm ? "products" : "LIVE",
+            shop: selectedShop.id || "",
+            account: firstAccount.id,
+            userId: currentUser.uid,
+          });
+
+          setCampaignId(newCampaignId);
+          setFormData((prev) => ({
+            ...prev,
+            shop: selectedShop.id || "",
+            account: firstAccount.id || "",
+          }));
         } catch (err) {
           console.error("Error creating campaign on load:", err);
           setError("Failed to create campaign. Please try again.");
@@ -143,7 +162,8 @@ export default function CreateCampaign() {
     shouldCreateOnLoad,
     currentUser,
     userData,
-    shops,
+    selectedShopId,
+    availableShops,
     accounts,
     campaignId,
     pgm,
@@ -244,7 +264,7 @@ export default function CreateCampaign() {
 
     try {
       setSubmitted(true);
-      
+
       if (campaignId) {
         // Update existing campaign with all fields
         await updateCampaign(campaignId, {
@@ -291,9 +311,7 @@ export default function CreateCampaign() {
         setSubmitted(false);
       }, 2000);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to save campaign"
-      );
+      setError(err instanceof Error ? err.message : "Failed to save campaign");
       setSubmitted(false);
     }
   };
@@ -711,12 +729,21 @@ export default function CreateCampaign() {
                   <Card.Body>
                     <Card.Title className="text-dark mb-3">
                       Ad creative
-                      <Link
-                        className="btn btn-secondary btn-sm float-end"
-                        href={`/sectionmodules/managecreatives?pgm=${pgm}`}
-                      >
-                        Edit
-                      </Link>
+                      {campaignId ? (
+                        <Link
+                          className="btn btn-secondary btn-sm float-end"
+                          href={`/sectionmodules/managecreatives?campaignId=${campaignId}&pgm=${pgm}`}
+                        >
+                          Edit
+                        </Link>
+                      ) : (
+                        <span
+                          className="text-muted float-end"
+                          style={{ fontSize: "14px" }}
+                        >
+                          Save campaign first to edit creatives
+                        </span>
+                      )}
                     </Card.Title>
                     <Card.Text>
                       Autoselecting ad creatives optimizes your campaign

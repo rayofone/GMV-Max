@@ -10,7 +10,6 @@ import { useShop } from "@/contexts/ShopContext";
 import {
   updateCampaign,
   getCampaign,
-  createCampaign,
   updateCreative,
   getProductsByShop,
   updateProduct,
@@ -26,7 +25,6 @@ export default function ManageCreatives() {
   const { selectedShopId, availableShops } = useShop();
   const { accounts } = useFirebase();
   const [campaignId, setCampaignId] = useState<string | null>(null);
-  const [campaignCreated, setCampaignCreated] = useState(false);
 
   // Get campaign ID and pgm from URL params on client side
   const [pgm, setPgm] = useState<boolean | null>(null);
@@ -46,67 +44,8 @@ export default function ManageCreatives() {
     }
   }, []);
 
-  // Create campaign automatically when page loads (if no campaignId exists)
-  useEffect(() => {
-    const createCampaignOnLoad = async () => {
-      if (
-        !campaignId &&
-        !campaignCreated &&
-        currentUser &&
-        userData &&
-        selectedShopId &&
-        availableShops.length > 0 &&
-        accounts.length > 0
-      ) {
-        try {
-          const selectedShop = availableShops.find(
-            (s) => s.id === selectedShopId
-          );
-          if (!selectedShop) return;
-
-          // Get first account for the shop
-          const shopAccounts = accounts.filter((acc) =>
-            acc.shops?.includes(selectedShop.id || "")
-          );
-          const firstAccount = shopAccounts[0];
-
-          if (firstAccount && firstAccount.id) {
-            const newCampaignId = await createCampaign({
-              name: `Campaign - ${new Date().toLocaleDateString()}`,
-              type: "products", // Default type
-              shop: selectedShop.id || "",
-              account: firstAccount.id,
-              userId: currentUser.uid,
-              selectedCreatives: [],
-              selectedAccounts: [],
-              excludedCreatives: [],
-              creatives: [],
-            });
-            setCampaignId(newCampaignId);
-            setCampaignCreated(true);
-            // Update URL without reload
-            window.history.replaceState(
-              {},
-              "",
-              `/sectionmodules/managecreatives?campaignId=${newCampaignId}`
-            );
-          }
-        } catch (error) {
-          console.error("Error creating campaign on load:", error);
-        }
-      }
-    };
-
-    createCampaignOnLoad();
-  }, [
-    campaignId,
-    campaignCreated,
-    currentUser,
-    userData,
-    selectedShopId,
-    availableShops,
-    accounts,
-  ]);
+  // Note: Campaigns should NOT be auto-created here.
+  // Campaigns are only created when user explicitly saves from the create campaign page.
 
   // Get data from Firebase context
   const {
@@ -206,24 +145,24 @@ export default function ManageCreatives() {
 
   // Save selectedAccounts changes in real-time
   useEffect(() => {
-    if (campaignId && campaignCreated) {
+    if (campaignId) {
       saveCampaignChanges({ selectedAccounts: selectedAccountIds });
     }
-  }, [selectedAccountIds, campaignId, campaignCreated]);
+  }, [selectedAccountIds, campaignId]);
 
   // Save excludedCreativeIds changes in real-time
   useEffect(() => {
-    if (campaignId && campaignCreated) {
+    if (campaignId) {
       saveCampaignChanges({ excludedCreativeIds });
     }
-  }, [excludedCreativeIds, campaignId, campaignCreated]);
+  }, [excludedCreativeIds, campaignId]);
 
   // Save selectedCreativeIds changes in real-time (for manual mode)
   useEffect(() => {
-    if (campaignId && campaignCreated && !autoMode) {
+    if (campaignId && !autoMode) {
       saveCampaignChanges({ selectedCreatives: selectedCreativeIds });
     }
-  }, [selectedCreativeIds, campaignId, campaignCreated, autoMode]);
+  }, [selectedCreativeIds, campaignId, autoMode]);
 
   // Manual creative selection handler
   const handleManualCreativeToggle = (creativeId: string | number) => {

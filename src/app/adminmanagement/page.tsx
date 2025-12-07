@@ -7,6 +7,7 @@ import AccountsManagement from "./components/AccountsManagement";
 import CreativesManagement from "./components/CreativesManagement";
 import ProductsManagement from "./components/ProductsManagement";
 import ShopsManagement from "./components/ShopsManagement";
+import CampaignsManagement from "./components/CampaignsManagement";
 
 export default function AdminManagement() {
   const [activeTab, setActiveTab] = useState("users");
@@ -14,8 +15,11 @@ export default function AdminManagement() {
   return (
     <Container className="py-5 mt-5">
       <h1 className="mb-4">Admin Management</h1>
-      
-      <Tab.Container activeKey={activeTab} onSelect={(k) => setActiveTab(k || "users")}>
+
+      <Tab.Container
+        activeKey={activeTab}
+        onSelect={(k) => setActiveTab(k || "users")}
+      >
         <Nav variant="tabs" className="mb-4">
           <Nav.Item>
             <Nav.Link eventKey="users">Users</Nav.Link>
@@ -31,6 +35,9 @@ export default function AdminManagement() {
           </Nav.Item>
           <Nav.Item>
             <Nav.Link eventKey="shops">Shops</Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link eventKey="campaigns">Campaigns</Nav.Link>
           </Nav.Item>
         </Nav>
 
@@ -50,9 +57,11 @@ export default function AdminManagement() {
           <Tab.Pane eventKey="shops">
             <ShopsManagement />
           </Tab.Pane>
+          <Tab.Pane eventKey="campaigns">
+            <CampaignsManagement />
+          </Tab.Pane>
         </Tab.Content>
       </Tab.Container>
     </Container>
   );
 }
-
