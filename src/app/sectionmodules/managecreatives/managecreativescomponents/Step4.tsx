@@ -41,6 +41,7 @@ interface Step4Props {
   isManualMode?: boolean;
   selectedCreativeIds?: (string | number)[];
   onCreativeToggle?: (creativeId: string | number) => void;
+  pgm?: boolean | null;
 }
 
 export default function Step4({
@@ -64,9 +65,10 @@ export default function Step4({
   handleSelectTag,
   handleRemoveTag,
   handleClearAll,
-  isManualMode = false,
+  isManualMode,
   selectedCreativeIds = [],
   onCreativeToggle,
+  pgm,
 }: Step4Props) {
   const affiliateInputRef = useRef<HTMLInputElement>(null);
   const allCreativesInputRef = useRef<HTMLInputElement>(null);
@@ -127,24 +129,26 @@ export default function Step4({
                     Affiliates
                   </Nav.Link>
                 </Nav.Item>
-                <div className="ms-auto">
-                  <Form className="">
-                    <Form.Check // prettier-ignore
-                      type="switch"
-                      id="custom-switch"
-                      label={
-                        <div>
-                          Promotional videos{" "}
-                          <CircleQuestionMark
-                            strokeWidth={1.5}
-                            size={16}
-                            className="mb-1 ms-2"
-                          />
-                        </div>
-                      }
-                    />
-                  </Form>
-                </div>
+                {!isManualMode && (
+                  <div className="ms-auto">
+                    <Form className="">
+                      <Form.Check // prettier-ignore
+                        type="switch"
+                        id="custom-switch"
+                        label={
+                          <div>
+                            Promotional videos{" "}
+                            <CircleQuestionMark
+                              strokeWidth={1.5}
+                              size={16}
+                              className="mb-1 ms-2"
+                            />
+                          </div>
+                        }
+                      />
+                    </Form>
+                  </div>
+                )}
               </Nav>
             </Col>
           </Row>
@@ -782,6 +786,96 @@ export default function Step4({
               </>
             )}
           </Row>
+
+          {/* Summary of Selected Videos - Only show in manual mode */}
+          {isManualMode &&
+            selectedCreativeIds &&
+            selectedCreativeIds.length > 0 && (
+              <>
+                <hr className="my-4" />
+                <div>
+                  <Card.Title className="text-dark mb-3">
+                    <p style={{ fontSize: "16px" }} className="fw-bold mb-0">
+                      Selected Creatives ({selectedCreativeIds.length})
+                    </p>
+                  </Card.Title>
+                  <Row className="gap-2">
+                    {(() => {
+                      // Get all selected creatives from both tabs
+                      const allCreatives = [
+                        ...creativesWithVideos,
+                        ...affiliateCreatives,
+                      ];
+                      const selectedCreatives = allCreatives.filter(
+                        (creative) => selectedCreativeIds.includes(creative.id)
+                      );
+
+                      return selectedCreatives.map((creative) => {
+                        const hasError = videoErrors.has(creative.id);
+                        const isValid = isValidVideoPath(creative.video);
+
+                        return (
+                          <Col
+                            sm={1}
+                            key={creative.id}
+                            className="position-relative"
+                            style={{
+                              height: "120px",
+                              width: "80px",
+                            }}
+                          >
+                            {isValid && !hasError && creative.video ? (
+                              <video
+                                src={creative.video}
+                                loop
+                                muted
+                                autoPlay={false}
+                                controls={false}
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  backgroundColor: "#f5f5f5",
+                                  borderRadius: "4px",
+                                }}
+                                onError={() => handleVideoError(creative.id)}
+                              />
+                            ) : (
+                              <div
+                                className="d-flex flex-column align-items-center justify-content-center bg-secondary text-white rounded"
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                }}
+                              >
+                                <CircleUser
+                                  strokeWidth={1.5}
+                                  size={24}
+                                  className="mb-1 opacity-50"
+                                />
+                                <p
+                                  className="text-center mb-0 px-1"
+                                  style={{ fontSize: "8px" }}
+                                >
+                                  No video
+                                </p>
+                              </div>
+                            )}
+                            <p
+                              className="mt-1 mb-0 text-truncate"
+                              style={{ fontSize: "10px" }}
+                              title={creative.name}
+                            >
+                              {creative.name}
+                            </p>
+                          </Col>
+                        );
+                      });
+                    })()}
+                  </Row>
+                </div>
+              </>
+            )}
         </Card.Body>
       </Card>
     </Col>

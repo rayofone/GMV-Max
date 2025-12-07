@@ -4,7 +4,12 @@ import React from "react";
 import { Card, Form, Col } from "react-bootstrap";
 import { CircleQuestionMark } from "lucide-react";
 
-export default function Step3({ isManualMode }) {
+interface Step3Props {
+  isManualMode?: boolean;
+  pgm?: boolean | null;
+}
+
+export default function Step3({ isManualMode = false }: Step3Props) {
   return (
     <>
       {isManualMode && (

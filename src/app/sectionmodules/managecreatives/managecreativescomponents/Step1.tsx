@@ -5,9 +5,11 @@ import { Card, Button, Col } from "react-bootstrap";
 
 interface Step1Props {
   onModeChange: (value: boolean) => void;
+  isManualMode?: boolean;
+  pgm?: boolean | null;
 }
 
-export default function Step1({ onModeChange, isManualMode }: Step1Props) {
+export default function Step1({ onModeChange, isManualMode, pgm }: Step1Props) {
   return (
     <Col sm={12} className="mb-4">
       <Card>
@@ -18,7 +20,8 @@ export default function Step1({ onModeChange, isManualMode }: Step1Props) {
             </p>
             <p style={{ fontSize: "16px" }} className="text-muted ms-2">
               {" "}
-              Select your creative mode
+              Select your creative mode for{" "}
+              <strong>{pgm ? "products" : "LIVE"}</strong> campaign
             </p>
           </Card.Title>
           {isManualMode ? (

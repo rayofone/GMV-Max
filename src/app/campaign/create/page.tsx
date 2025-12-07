@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { useShop } from "@/contexts/ShopContext";
-import { createCampaign, deleteCampaign } from "@/lib/firebaseAdmin";
+import { createCampaign, deleteCampaign, getCampaign, updateCampaign } from "@/lib/firebaseAdmin";
 import type { Shop } from "@/types/admin";
 
 export default function CreateCampaign() {
@@ -42,16 +42,50 @@ export default function CreateCampaign() {
   const [error, setError] = useState<string | null>(null);
   const [shouldCreateOnLoad, setShouldCreateOnLoad] = useState(false);
 
+  // Load campaign data and pre-fill form
+  const loadCampaignData = async (id: string) => {
+    try {
+      const campaign = await getCampaign(id);
+      if (campaign) {
+        setFormData({
+          campaignName: campaign.name || "",
+          budget: campaign.budget || "",
+          startDate: campaign.startDate || "",
+          endDate: campaign.endDate || "",
+          targetAudience: campaign.targetAudience || "",
+          description: campaign.description || "",
+          shop: campaign.shop || "",
+          account: campaign.account || "",
+        });
+        if (campaign.type) {
+          setPgm(campaign.type === "products");
+        }
+        // Set shop in header if not already set
+        if (campaign.shop && campaign.shop !== selectedShopId) {
+          setSelectedShopId(campaign.shop);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading campaign:", error);
+    }
+  };
+
   useEffect(() => {
-    // Check if we should create a campaign on load (from "Create GMV Max ads" button)
+    // Check URL params for campaignId or createNew
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
+      const urlCampaignId = params.get("campaignId");
       const createNew = params.get("createNew");
-      if (createNew === "true") {
+      
+      if (urlCampaignId && urlCampaignId !== campaignId) {
+        // Load existing campaign and pre-fill form
+        setCampaignId(urlCampaignId);
+        loadCampaignData(urlCampaignId);
+      } else if (createNew === "true") {
         setShouldCreateOnLoad(true);
       }
     }
-  }, []);
+  }, []); // Only run once on mount
 
   useEffect(() => {
     // Use shops from ShopContext
@@ -210,17 +244,36 @@ export default function CreateCampaign() {
 
     try {
       setSubmitted(true);
-      await createCampaign({
-        name: formData.campaignName,
-        budget: formData.budget,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        targetAudience: formData.targetAudience,
-        description: formData.description,
-        shop: formData.shop,
-        account: formData.account,
-        userId: currentUser.uid,
-      });
+      
+      if (campaignId) {
+        // Update existing campaign with all fields
+        await updateCampaign(campaignId, {
+          name: formData.campaignName,
+          budget: formData.budget,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          targetAudience: formData.targetAudience,
+          description: formData.description,
+          shop: formData.shop,
+          account: formData.account,
+          type: pgm ? "products" : "LIVE",
+        });
+      } else {
+        // Create new campaign
+        const newCampaignId = await createCampaign({
+          name: formData.campaignName,
+          budget: formData.budget,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          targetAudience: formData.targetAudience,
+          description: formData.description,
+          shop: formData.shop,
+          account: formData.account,
+          userId: currentUser.uid,
+          type: pgm ? "products" : "LIVE",
+        });
+        setCampaignId(newCampaignId);
+      }
 
       // Reset form after 2 seconds
       setTimeout(() => {
@@ -234,11 +287,12 @@ export default function CreateCampaign() {
           shop: formData.shop, // Keep shop selected
           account: "", // Reset account
         });
+        setCampaignId(null);
         setSubmitted(false);
       }, 2000);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to create campaign"
+        err instanceof Error ? err.message : "Failed to save campaign"
       );
       setSubmitted(false);
     }
@@ -659,7 +713,7 @@ export default function CreateCampaign() {
                       Ad creative
                       <Link
                         className="btn btn-secondary btn-sm float-end"
-                        href="/sectionmodules/managecreatives"
+                        href={`/sectionmodules/managecreatives?pgm=${pgm}`}
                       >
                         Edit
                       </Link>

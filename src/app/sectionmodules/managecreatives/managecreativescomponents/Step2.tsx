@@ -47,6 +47,8 @@ interface Step2Props {
   // Advanced settings
   advancedOpen: boolean;
   setAdvancedOpen: (open: boolean) => void;
+  isManualMode?: boolean;
+  pgm?: boolean | null;
 }
 
 export default function Step2({
@@ -66,7 +68,7 @@ export default function Step2({
   exclusionsToDisplay,
   advancedOpen,
   setAdvancedOpen,
-  isManualMode,
+  isManualMode = false,
 }: Step2Props) {
   const [accountsDropdownOpen, setAccountsDropdownOpen] = React.useState(false);
   return (

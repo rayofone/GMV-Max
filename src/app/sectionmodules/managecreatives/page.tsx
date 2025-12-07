@@ -28,13 +28,20 @@ export default function ManageCreatives() {
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [campaignCreated, setCampaignCreated] = useState(false);
 
-  // Get campaign ID from URL params on client side
+  // Get campaign ID and pgm from URL params on client side
+  const [pgm, setPgm] = useState<boolean | null>(null);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const urlCampaignId = params.get("campaignId");
       if (urlCampaignId) {
         setCampaignId(urlCampaignId);
+      }
+
+      const urlPgm = params.get("pgm");
+      if (urlPgm !== null) {
+        setPgm(urlPgm === "true");
       }
     }
   }, []);
@@ -420,7 +427,11 @@ export default function ManageCreatives() {
         <Col lg={12}>
           <Row className="mb-4">
             <>
-              <Step1 onModeChange={handleModeChange} isManualMode={autoMode} />
+              <Step1
+                onModeChange={handleModeChange}
+                isManualMode={autoMode}
+                pgm={pgm}
+              />
 
               <Step2
                 availableAccounts={availableAccounts}
@@ -440,9 +451,10 @@ export default function ManageCreatives() {
                 advancedOpen={advancedOpen}
                 setAdvancedOpen={setAdvancedOpen}
                 isManualMode={autoMode}
+                pgm={pgm}
               />
 
-              <Step3 isManualMode={autoMode} />
+              <Step3 isManualMode={autoMode} pgm={pgm} />
 
               <Step4
                 TikTokPostsTab={TikTokPostsTab}
@@ -465,7 +477,10 @@ export default function ManageCreatives() {
                 handleSelectTag={handleSelectTag}
                 handleRemoveTag={handleRemoveTag}
                 handleClearAll={handleClearAll}
-                isManualMode={autoMode}
+                isManualMode={!autoMode}
+                selectedCreativeIds={selectedCreativeIds}
+                onCreativeToggle={handleManualCreativeToggle}
+                pgm={pgm}
               />
             </>
           </Row>
@@ -569,8 +584,8 @@ export default function ManageCreatives() {
                       }
                     }
 
-                    // Redirect to campaigns list or dashboard
-                    router.push("/");
+                    // Redirect back to create campaign page with campaignId
+                    router.push(`/campaign/create?campaignId=${campaignId}`);
                   } catch (error) {
                     console.error("Error saving campaign creatives:", error);
                     alert(
