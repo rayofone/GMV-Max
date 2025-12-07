@@ -16,6 +16,7 @@ import {
   User as FirebaseUser,
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { Timestamp } from "firebase/firestore";
 import { auth, db, googleProvider } from "@/lib/firebase";
 import type { User } from "@/types/admin";
 
@@ -57,6 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: userDataFromFirebase.email,
           shops: userDataFromFirebase.shops,
           shopsLength: userDataFromFirebase.shops?.length || 0,
+          isMasterAdmin: userDataFromFirebase.isMasterAdmin,
+          isAdmin: userDataFromFirebase.isAdmin,
+          role: userDataFromFirebase.role,
         });
         setUserData(userDataFromFirebase);
       } else if (email === MASTER_ADMIN_EMAIL) {
@@ -119,6 +123,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name,
         role: "user",
         shops: [],
+        isAdmin: false, // Explicitly set to false for new users
+        isMasterAdmin: false, // Explicitly set to false for new users
       });
     }
     await fetchUserData(
@@ -128,26 +134,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginWithGoogle = async () => {
-    const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
 
-    // Check if user document exists, if not create one (unless master admin)
-    if (user.email !== MASTER_ADMIN_EMAIL) {
-      const userDoc = await getDoc(doc(db, "users", user.uid));
+      console.log("Google login - User authenticated:", {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+      });
+
+      if (!user.email) {
+        throw new Error("Google account does not have an email address");
+      }
+
+      // Always check if user document exists, create one if it doesn't
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
       if (!userDoc.exists()) {
+        console.log(
+          "User document does not exist, creating new user document..."
+        );
+
+        // Determine if this is master admin
+        const isMasterAdminUser = user.email === MASTER_ADMIN_EMAIL;
+
         // Create user document with Google account info
-        await setDoc(doc(db, "users", user.uid), {
+        const userDataToCreate = {
           email: user.email,
-          name: user.displayName || user.email?.split("@")[0] || "User",
-          role: "user",
-          shops: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          name: user.displayName || user.email.split("@")[0] || "User",
+          role: isMasterAdminUser ? "admin" : "user",
+          shops: [], // Start with empty shops array
+          isAdmin: isMasterAdminUser ? true : false, // Explicitly set to false for regular users
+          isMasterAdmin: isMasterAdminUser ? true : false, // Explicitly set to false for regular users
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        };
+
+        console.log("Creating user document with data:", {
+          ...userDataToCreate,
+          createdAt: "Timestamp.now()",
+          updatedAt: "Timestamp.now()",
+        });
+
+        await setDoc(userDocRef, userDataToCreate);
+        console.log("User document created successfully with ID:", user.uid);
+      } else {
+        console.log("User document already exists:", {
+          id: userDoc.id,
+          email: userDoc.data().email,
+          shops: userDoc.data().shops,
         });
       }
-    }
 
-    await fetchUserData(user.uid, user.email || undefined);
+      // Fetch user data (this will get the newly created document or existing one)
+      await fetchUserData(user.uid, user.email);
+    } catch (error) {
+      console.error("Error during Google login:", error);
+      throw error;
+    }
   };
 
   const logout = async () => {
@@ -161,7 +207,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const isMasterAdmin = currentUser?.email === MASTER_ADMIN_EMAIL;
+  // Check isMasterAdmin from userData document OR email fallback
+  const isMasterAdmin =
+    userData?.isMasterAdmin === true ||
+    currentUser?.email === MASTER_ADMIN_EMAIL;
 
   const value = {
     currentUser,

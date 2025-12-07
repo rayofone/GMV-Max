@@ -266,11 +266,43 @@ export const getShop = async (id: string): Promise<Shop | null> => {
 };
 
 export const getShops = async (): Promise<Shop[]> => {
-  const querySnapshot = await getDocs(collection(db, "shops"));
-  return querySnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...convertTimestamps(doc.data()),
-  })) as Shop[];
+  try {
+    // Try both "shops" and "shop" collection names
+    const collectionNames = ["shops", "shop"];
+    
+    for (const collectionName of collectionNames) {
+      try {
+        const shopsCollection = collection(db, collectionName);
+        const querySnapshot = await getDocs(shopsCollection);
+        
+        // If we found documents, use this collection
+        if (querySnapshot.size > 0) {
+          const shops = querySnapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              name: data.name || "",
+              owner: data.owner || "",
+              accounts: data.accounts || [],
+              products: data.products || [],
+              users: data.users || [],
+              ...convertTimestamps(data),
+            } as Shop;
+          });
+          
+          return shops;
+        }
+      } catch (err) {
+        // Continue to next collection name
+      }
+    }
+    
+    // If we get here, no shops were found in either collection
+    return [];
+  } catch (error) {
+    console.error("Error in getShops():", error);
+    throw error;
+  }
 };
 
 export const getShopsByOwner = async (ownerId: string): Promise<Shop[]> => {

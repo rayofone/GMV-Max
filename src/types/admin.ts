@@ -6,6 +6,8 @@ export interface User {
   name: string;
   role: "admin" | "user";
   shops?: string[]; // shop IDs
+  isAdmin?: boolean;
+  isMasterAdmin?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -56,7 +58,9 @@ export interface Shop {
   id?: string;
   name: string;
   owner: string; // user ID
-  accounts: string[]; // account IDs
+  accounts?: string[]; // account IDs
+  products?: string[]; // product IDs
+  users?: string[]; // user IDs who can access
   createdAt?: Date;
   updatedAt?: Date;
 }

@@ -66,6 +66,7 @@ export default function Step2({
   exclusionsToDisplay,
   advancedOpen,
   setAdvancedOpen,
+  isManualMode,
 }: Step2Props) {
   const [accountsDropdownOpen, setAccountsDropdownOpen] = React.useState(false);
   return (
@@ -456,177 +457,181 @@ export default function Step2({
             </div>
           </div>
 
-          {/* EXCLUSION */}
-          <Row>
-            <Col>
-              <Button
-                onClick={() => setAdvancedOpen(!advancedOpen)}
-                aria-controls="example-collapse-text"
-                aria-expanded={advancedOpen}
-                variant="text"
-                className="text-muted btn-sm ms-0 ps-0"
-              >
-                {!advancedOpen ? (
-                  <ChevronsDown size={12} className="me-2" />
-                ) : (
-                  <ChevronsUp size={12} className="me-2" />
-                )}
-                <span>Advanced settings</span>
-              </Button>
-              <Collapse in={advancedOpen} className="mt-2">
-                <div id="example-collapse-text">
-                  <div className="d-flex align-items-center">
-                    <p style={{ fontSize: "14px" }} className="fw-bold pt-3">
-                      Excluded videos:{" "}
-                    </p>
-                    <Dropdown className="ms-3" style={{ width: "250px" }}>
-                      <Dropdown.Toggle
-                        variant="secondary"
-                        id="dropdown-basic"
-                        className="btn-sm border-0 d-flex align-items-center"
-                      >
-                        <span className="me-2 mb-1">
-                          <Plus size={16} strokeWidth={2} />
-                        </span>
-                        <span className="me-4">
-                          Exclusion filter ({excludedCreativeIds.length})
-                        </span>
-                        <span className=" mb-1">
-                          <CircleQuestionMark strokeWidth={1.5} size={16} />
-                        </span>
-                      </Dropdown.Toggle>
-                      <Dropdown.Menu
-                        className="border-0 shadow-sm px-3"
-                        style={{ width: "250px" }}
-                      >
-                        <div className="rounded my-2">
-                          <Dropdown className="ms-3">
-                            <Dropdown.Toggle
-                              id="dropdown-basic"
-                              className="btn-sm border-0 bg-transparent text-dark d-flex align-items-center p-0 w-100"
-                            >
-                              <span
-                                className="me-auto"
-                                style={{ fontSize: "16px" }}
+          {/*********************************************************************** EXCLUSION */}
+          {isManualMode && (
+            <Row>
+              <Col>
+                <Button
+                  onClick={() => setAdvancedOpen(!advancedOpen)}
+                  aria-controls="example-collapse-text"
+                  aria-expanded={advancedOpen}
+                  variant="text"
+                  className="text-muted btn-sm ms-0 ps-0"
+                >
+                  {!advancedOpen ? (
+                    <ChevronsDown size={12} className="me-2" />
+                  ) : (
+                    <ChevronsUp size={12} className="me-2" />
+                  )}
+                  <span>Advanced settings</span>
+                </Button>
+                <Collapse in={advancedOpen} className="mt-2">
+                  <div id="example-collapse-text">
+                    <div className="d-flex align-items-center">
+                      <p style={{ fontSize: "14px" }} className="fw-bold pt-3">
+                        Excluded videos:{" "}
+                      </p>
+                      <Dropdown className="ms-3" style={{ width: "250px" }}>
+                        <Dropdown.Toggle
+                          variant="secondary"
+                          id="dropdown-basic"
+                          className="btn-sm border-0 d-flex align-items-center"
+                        >
+                          <span className="me-2 mb-1">
+                            <Plus size={16} strokeWidth={2} />
+                          </span>
+                          <span className="me-4">
+                            Exclusion filter ({excludedCreativeIds.length})
+                          </span>
+                          <span className=" mb-1">
+                            <CircleQuestionMark strokeWidth={1.5} size={16} />
+                          </span>
+                        </Dropdown.Toggle>
+                        <Dropdown.Menu
+                          className="border-0 shadow-sm px-3"
+                          style={{ width: "250px" }}
+                        >
+                          <div className="rounded my-2">
+                            <Dropdown className="ms-3">
+                              <Dropdown.Toggle
+                                id="dropdown-basic"
+                                className="btn-sm border-0 bg-transparent text-dark d-flex align-items-center p-0 w-100"
                               >
-                                Affiliates (1 available)
-                              </span>
-                              <span className="mb-1">
-                                <ChevronRight size={18} strokeWidth={2} />
-                              </span>
-                            </Dropdown.Toggle>
-                            <Dropdown.Menu
-                              className="border-0 shadow-sm px-3"
-                              style={{
-                                width: "400px",
-                                marginLeft: "220px",
-                                marginTop: "-40px",
-                              }}
-                            >
-                              <div className="rounded my-2">
-                                <Card>
-                                  <Card.Header className="d-flex align-items-center bg-transparent m-0 p-0 mb-3">
-                                    <strong>Affiliates</strong>
-                                  </Card.Header>
-                                  <Card.Body className="p-0 mb-3">
-                                    <input
-                                      type="text"
-                                      placeholder="Type [/] to Search"
-                                      value={searchCreativeTerm}
-                                      onChange={handleCreativeSearchChange}
-                                      className="form-control mb-3"
-                                    />
+                                <span
+                                  className="me-auto"
+                                  style={{ fontSize: "16px" }}
+                                >
+                                  Affiliates (1 available)
+                                </span>
+                                <span className="mb-1">
+                                  <ChevronRight size={18} strokeWidth={2} />
+                                </span>
+                              </Dropdown.Toggle>
+                              <Dropdown.Menu
+                                className="border-0 shadow-sm px-3"
+                                style={{
+                                  width: "400px",
+                                  marginLeft: "220px",
+                                  marginTop: "-40px",
+                                }}
+                              >
+                                <div className="rounded my-2">
+                                  <Card>
+                                    <Card.Header className="d-flex align-items-center bg-transparent m-0 p-0 mb-3">
+                                      <strong>Affiliates</strong>
+                                    </Card.Header>
+                                    <Card.Body className="p-0 mb-3">
+                                      <input
+                                        type="text"
+                                        placeholder="Type [/] to Search"
+                                        value={searchCreativeTerm}
+                                        onChange={handleCreativeSearchChange}
+                                        className="form-control mb-3"
+                                      />
 
-                                    {filteredCreatives.map((creative) => (
-                                      <div
-                                        className="d-flex align-items-center mb-3 "
-                                        key={creative.id}
-                                      >
-                                        <input
-                                          className="form-check-input me-2"
-                                          type="checkbox"
-                                          id={`creative${creative.id}`}
-                                          onChange={() =>
-                                            handleCreativeToggle(creative.id)
-                                          }
-                                        />
-                                        <label
-                                          className="form-check-label d-flex"
-                                          htmlFor={`creative${creative.id}`}
-                                          style={{
-                                            fontSize: "14px",
-                                          }}
+                                      {filteredCreatives.map((creative) => (
+                                        <div
+                                          className="d-flex align-items-center mb-3 "
+                                          key={creative.id}
                                         >
-                                          <span className="col me-2">
-                                            <CircleUser
-                                              strokeWidth={1.5}
-                                              size={42}
-                                            />
-                                          </span>
-                                          <span className="w-100">
-                                            {creative.name}
-                                            <br />
-                                            {creative.shop}
-                                          </span>
-                                        </label>
-                                      </div>
-                                    ))}
-                                  </Card.Body>
-                                  <Card.Footer className="bg-transparent p-0 pt-3 d-flex justify-content-end">
-                                    <caption className="text-muted me-auto pt-2">
-                                      {excludedCreativeIds.length} selected
-                                    </caption>
-                                    <Button
-                                      variant="secondary"
-                                      className="btn-sm me-3"
-                                    >
-                                      Cancel
-                                    </Button>
-                                    <Button
-                                      variant="primary"
-                                      className="btn-sm"
-                                    >
-                                      Apply
-                                    </Button>
-                                  </Card.Footer>
-                                </Card>
-                              </div>
-                            </Dropdown.Menu>
-                          </Dropdown>
-                        </div>
-                      </Dropdown.Menu>
-                    </Dropdown>
+                                          <input
+                                            className="form-check-input me-2"
+                                            type="checkbox"
+                                            id={`creative${creative.id}`}
+                                            onChange={() =>
+                                              handleCreativeToggle(creative.id)
+                                            }
+                                          />
+                                          <label
+                                            className="form-check-label d-flex"
+                                            htmlFor={`creative${creative.id}`}
+                                            style={{
+                                              fontSize: "14px",
+                                            }}
+                                          >
+                                            <span className="col me-2">
+                                              <CircleUser
+                                                strokeWidth={1.5}
+                                                size={42}
+                                              />
+                                            </span>
+                                            <span className="w-100">
+                                              {creative.name}
+                                              <br />
+                                              {creative.shop}
+                                            </span>
+                                          </label>
+                                        </div>
+                                      ))}
+                                    </Card.Body>
+                                    <Card.Footer className="bg-transparent p-0 pt-3 d-flex justify-content-end">
+                                      <caption className="text-muted me-auto pt-2">
+                                        {excludedCreativeIds.length} selected
+                                      </caption>
+                                      <Button
+                                        variant="secondary"
+                                        className="btn-sm me-3"
+                                      >
+                                        Cancel
+                                      </Button>
+                                      <Button
+                                        variant="primary"
+                                        className="btn-sm"
+                                      >
+                                        Apply
+                                      </Button>
+                                    </Card.Footer>
+                                  </Card>
+                                </div>
+                              </Dropdown.Menu>
+                            </Dropdown>
+                          </div>
+                        </Dropdown.Menu>
+                      </Dropdown>
+                    </div>
+                    {/* TAG DISPLAY */}
+                    <Row className="ms-3">
+                      <Col className="offset-md-1 d-flex flex-wrap">
+                        {exclusionsToDisplay.length === 0 ? (
+                          <span className="text-muted">
+                            No creatives are currently excluded.
+                          </span>
+                        ) : (
+                          exclusionsToDisplay.map((creative) => (
+                            <Badge
+                              key={creative.id}
+                              pill
+                              bg="secondary"
+                              className="me-2 my-1 d-flex align-items-center text-muted"
+                            >
+                              {creative.type} ({creative.id})
+                              <X
+                                size={14}
+                                className="ms-1 cursor-pointer"
+                                onClick={() =>
+                                  handleCreativeToggle(creative.id)
+                                }
+                              />
+                            </Badge>
+                          ))
+                        )}
+                      </Col>
+                    </Row>
                   </div>
-                  {/* TAG DISPLAY */}
-                  <Row className="ms-3">
-                    <Col className="offset-md-1 d-flex flex-wrap">
-                      {exclusionsToDisplay.length === 0 ? (
-                        <span className="text-muted">
-                          No creatives are currently excluded.
-                        </span>
-                      ) : (
-                        exclusionsToDisplay.map((creative) => (
-                          <Badge
-                            key={creative.id}
-                            pill
-                            bg="secondary"
-                            className="me-2 my-1 d-flex align-items-center text-muted"
-                          >
-                            {creative.type} ({creative.id})
-                            <X
-                              size={14}
-                              className="ms-1 cursor-pointer"
-                              onClick={() => handleCreativeToggle(creative.id)}
-                            />
-                          </Badge>
-                        ))
-                      )}
-                    </Col>
-                  </Row>
-                </div>
-              </Collapse>
-            </Col>
-          </Row>
+                </Collapse>
+              </Col>
+            </Row>
+          )}
         </Card.Body>
       </Card>
     </Col>

@@ -419,105 +419,55 @@ export default function ManageCreatives() {
       <Row>
         <Col lg={12}>
           <Row className="mb-4">
-            {autoMode ? (
-              <>
-                <Step1 onModeChange={handleModeChange} />
+            <>
+              <Step1 onModeChange={handleModeChange} isManualMode={autoMode} />
 
-                <Step2
-                  availableAccounts={availableAccounts}
-                  accountsLoading={accountsLoading}
-                  accountsError={accountsError}
-                  filteredAccounts={filteredAccounts}
-                  searchTerm={searchTerm}
-                  handleSearchChange={handleSearchChange}
-                  selectedAccountIds={selectedAccountIds}
-                  handleAccountToggle={handleAccountToggle}
-                  filteredCreatives={filteredCreatives}
-                  searchCreativeTerm={searchCreativeTerm}
-                  handleCreativeSearchChange={handleCreativeSearchChange}
-                  excludedCreativeIds={excludedCreativeIds}
-                  handleCreativeToggle={handleCreativeToggle}
-                  exclusionsToDisplay={exclusionsToDisplay}
-                  advancedOpen={advancedOpen}
-                  setAdvancedOpen={setAdvancedOpen}
-                />
+              <Step2
+                availableAccounts={availableAccounts}
+                accountsLoading={accountsLoading}
+                accountsError={accountsError}
+                filteredAccounts={filteredAccounts}
+                searchTerm={searchTerm}
+                handleSearchChange={handleSearchChange}
+                selectedAccountIds={selectedAccountIds}
+                handleAccountToggle={handleAccountToggle}
+                filteredCreatives={filteredCreatives}
+                searchCreativeTerm={searchCreativeTerm}
+                handleCreativeSearchChange={handleCreativeSearchChange}
+                excludedCreativeIds={excludedCreativeIds}
+                handleCreativeToggle={handleCreativeToggle}
+                exclusionsToDisplay={exclusionsToDisplay}
+                advancedOpen={advancedOpen}
+                setAdvancedOpen={setAdvancedOpen}
+                isManualMode={autoMode}
+              />
 
-                <Step3 />
+              <Step3 isManualMode={autoMode} />
 
-                <Step4
-                  TikTokPostsTab={TikTokPostsTab}
-                  AffiliatesTab={AffiliatesTab}
-                  onTikTokPostsClick={handleTikTokPostsClick}
-                  onAffiliatesClick={handleAffiliatesClick}
-                  creativesLoading={creativesLoading}
-                  creativesError={creativesError}
-                  creativesWithVideos={creativesWithVideos}
-                  affiliateCreatives={affiliateCreatives}
-                  videoErrors={videoErrors}
-                  isValidVideoPath={isValidVideoPath}
-                  handleVideoError={handleVideoError}
-                  searchQuery={searchQuery}
-                  selectedTags={selectedTags}
-                  showMenu={showMenu}
-                  setShowMenu={setShowMenu}
-                  filterableCreatives={filterableCreatives}
-                  handleSearchQueryChange={handleSearchQueryChange}
-                  handleSelectTag={handleSelectTag}
-                  handleRemoveTag={handleRemoveTag}
-                  handleClearAll={handleClearAll}
-                  isManualMode={false}
-                />
-              </>
-            ) : (
-              // Manual Mode
-              <>
-                <Step1 onModeChange={handleModeChange} />
-                <Step2
-                  availableAccounts={availableAccounts}
-                  accountsLoading={accountsLoading}
-                  accountsError={accountsError}
-                  filteredAccounts={filteredAccounts}
-                  searchTerm={searchTerm}
-                  handleSearchChange={handleSearchChange}
-                  selectedAccountIds={selectedAccountIds}
-                  handleAccountToggle={handleAccountToggle}
-                  filteredCreatives={filteredCreatives}
-                  searchCreativeTerm={searchCreativeTerm}
-                  handleCreativeSearchChange={handleCreativeSearchChange}
-                  excludedCreativeIds={excludedCreativeIds}
-                  handleCreativeToggle={handleCreativeToggle}
-                  exclusionsToDisplay={exclusionsToDisplay}
-                  advancedOpen={advancedOpen}
-                  setAdvancedOpen={setAdvancedOpen}
-                />
-                <Step3 />
-                <Step4
-                  TikTokPostsTab={TikTokPostsTab}
-                  AffiliatesTab={AffiliatesTab}
-                  onTikTokPostsClick={handleTikTokPostsClick}
-                  onAffiliatesClick={handleAffiliatesClick}
-                  creativesLoading={creativesLoading}
-                  creativesError={creativesError}
-                  creativesWithVideos={creativesWithVideos}
-                  affiliateCreatives={affiliateCreatives}
-                  videoErrors={videoErrors}
-                  isValidVideoPath={isValidVideoPath}
-                  handleVideoError={handleVideoError}
-                  searchQuery={searchQuery}
-                  selectedTags={selectedTags}
-                  showMenu={showMenu}
-                  setShowMenu={setShowMenu}
-                  filterableCreatives={filterableCreatives}
-                  handleSearchQueryChange={handleSearchQueryChange}
-                  handleSelectTag={handleSelectTag}
-                  handleRemoveTag={handleRemoveTag}
-                  handleClearAll={handleClearAll}
-                  isManualMode={true}
-                  selectedCreativeIds={selectedCreativeIds}
-                  onCreativeToggle={handleManualCreativeToggle}
-                />
-              </>
-            )}
+              <Step4
+                TikTokPostsTab={TikTokPostsTab}
+                AffiliatesTab={AffiliatesTab}
+                onTikTokPostsClick={handleTikTokPostsClick}
+                onAffiliatesClick={handleAffiliatesClick}
+                creativesLoading={creativesLoading}
+                creativesError={creativesError}
+                creativesWithVideos={creativesWithVideos}
+                affiliateCreatives={affiliateCreatives}
+                videoErrors={videoErrors}
+                isValidVideoPath={isValidVideoPath}
+                handleVideoError={handleVideoError}
+                searchQuery={searchQuery}
+                selectedTags={selectedTags}
+                showMenu={showMenu}
+                setShowMenu={setShowMenu}
+                filterableCreatives={filterableCreatives}
+                handleSearchQueryChange={handleSearchQueryChange}
+                handleSelectTag={handleSelectTag}
+                handleRemoveTag={handleRemoveTag}
+                handleClearAll={handleClearAll}
+                isManualMode={autoMode}
+              />
+            </>
           </Row>
         </Col>
       </Row>

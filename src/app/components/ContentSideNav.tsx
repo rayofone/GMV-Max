@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import styles from './ContentSideNav.module.css';
+import React, { useState } from "react";
+import Link from "next/link";
+import styles from "./ContentSideNav.module.css";
 
 interface NavItem {
   href: string;
@@ -12,19 +12,19 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    href: '/',
-    icon: '📊',
-    label: 'Campaigns',
+    href: "/",
+    icon: "📊",
+    label: "Campaigns",
   },
   {
-    href: '#',
-    icon: '⏸️',
-    label: 'Creatives',
+    href: "/creatives",
+    icon: "⏸️",
+    label: "Creatives",
   },
   {
-    href: '#',
-    icon: '⚠️',
-    label: 'Accounts',
+    href: "/accounts",
+    icon: "⚠️",
+    label: "Accounts",
   },
 ];
 
@@ -33,7 +33,7 @@ export default function ContentSideNav({ className }: { className?: string }) {
 
   return (
     <nav
-      className={`${styles.contentSideNav} ${className ?? ''} rounded`}
+      className={`${styles.contentSideNav} ${className ?? ""} rounded`}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
     >
