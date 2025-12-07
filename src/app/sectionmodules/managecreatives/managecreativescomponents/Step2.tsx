@@ -31,15 +31,19 @@ interface Step2Props {
   filteredAccounts: Account[];
   searchTerm: string;
   handleSearchChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  
+  selectedAccountIds: string[];
+  handleAccountToggle: (accountId: string) => void;
+
   // Creatives for exclusion
   filteredCreatives: Creative[];
   searchCreativeTerm: string;
-  handleCreativeSearchChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  handleCreativeSearchChange: (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => void;
   excludedCreativeIds: (string | number)[];
   handleCreativeToggle: (creativeId: string | number) => void;
   exclusionsToDisplay: Creative[];
-  
+
   // Advanced settings
   advancedOpen: boolean;
   setAdvancedOpen: (open: boolean) => void;
@@ -52,6 +56,8 @@ export default function Step2({
   filteredAccounts,
   searchTerm,
   handleSearchChange,
+  selectedAccountIds,
+  handleAccountToggle,
   filteredCreatives,
   searchCreativeTerm,
   handleCreativeSearchChange,
@@ -187,23 +193,29 @@ export default function Step2({
                   className="btn-sm border-0"
                 >
                   <span className="me-3">
-                    TikTok accounts ({availableAccounts.length})
+                    TikTok accounts ({selectedAccountIds.length})
                   </span>
                   <span className="mb-1">
                     <ChevronDown size={16} strokeWidth={2} />
                   </span>
                 </Dropdown.Toggle>
                 <Dropdown.Menu
-                  className="border-1 border-secondary shadow-sm pb-5 h-100"
-                  style={{ width: "750px" }}
+                  className="border-1 border-secondary shadow-sm"
+                  style={{
+                    width: "750px",
+                    maxHeight: "600px",
+                    overflowY: "auto",
+                  }}
                 >
-                  <Card style={{ width: "700px", height: "500px" }}>
+                  <Card style={{ width: "700px" }}>
                     <Card.Body style={{ width: "100%" }}>
-                      <Card.Title className="mb-2">TikTok accounts: </Card.Title>
+                      <Card.Title className="mb-2">
+                        TikTok accounts:{" "}
+                      </Card.Title>
                       <Card.Text className="text-muted">
                         Include as many available TikTok accounts in your
-                        campaign as possible to ensure sufficient creative supply
-                        for your ads.
+                        campaign as possible to ensure sufficient creative
+                        supply for your ads.
                       </Card.Text>
                       <Col className="mb-3">
                         <input
@@ -225,6 +237,8 @@ export default function Step2({
                               style={{
                                 width: "100%",
                                 height: "100%",
+                                maxHeight: "350px",
+                                overflowY: "auto",
                               }}
                             >
                               <Card.Text className="mb-0 text-dark">
@@ -238,33 +252,53 @@ export default function Step2({
                                 <Alert variant="warning" className="my-3 py-2">
                                   <small>{accountsError}</small>
                                 </Alert>
-                              ) : filteredAccounts.length > 0 ? (
-                                filteredAccounts.map((account, index) => (
-                                  <div
-                                    className="my-3"
-                                    key={account.id || index}
-                                  >
-                                    <input
-                                      className="form-check-input me-2"
-                                      type="checkbox"
-                                      value=""
-                                      id={`account-${account.id || index}`}
-                                    />
-                                    <label
-                                      className="form-check-label text-muted"
-                                      htmlFor={`account-${account.id || index}`}
-                                    >
-                                      <small>{account.name}</small>
-                                      <div className="badge bg-secondary text-muted ms-3">
-                                        {account.type}
-                                      </div>
-                                    </label>
-                                  </div>
-                                ))
                               ) : (
-                                <div className="my-3 text-muted">
-                                  <small>No accounts found.</small>
-                                </div>
+                                (() => {
+                                  // Filter by status "Authorized" and apply search filter
+                                  const authorizedAccounts =
+                                    filteredAccounts.filter(
+                                      (account) =>
+                                        account.status === "Authorized"
+                                    );
+                                  return authorizedAccounts.length > 0 ? (
+                                    authorizedAccounts.map((account, index) => {
+                                      const accountId =
+                                        account.id || `temp-${index}`;
+                                      const isChecked =
+                                        account.status === "Authorized" ||
+                                        selectedAccountIds.includes(accountId);
+
+                                      return (
+                                        <div className="my-3" key={accountId}>
+                                          <input
+                                            className="form-check-input me-2"
+                                            type="checkbox"
+                                            checked={isChecked}
+                                            onChange={() =>
+                                              handleAccountToggle(accountId)
+                                            }
+                                            id={`account-${accountId}`}
+                                          />
+                                          <label
+                                            className="form-check-label text-muted"
+                                            htmlFor={`account-${accountId}`}
+                                          >
+                                            <small>{account.name}</small>
+                                            <div className="badge bg-secondary text-muted ms-3">
+                                              {account.type}
+                                            </div>
+                                          </label>
+                                        </div>
+                                      );
+                                    })
+                                  ) : (
+                                    <div className="my-3 text-muted">
+                                      <small>
+                                        No authorized accounts found.
+                                      </small>
+                                    </div>
+                                  );
+                                })()
                               )}
                             </Card.Body>
                           </Card>
@@ -279,64 +313,75 @@ export default function Step2({
                               style={{
                                 width: "100%",
                                 height: "100%",
+                                maxHeight: "350px",
+                                overflowY: "auto",
                               }}
                             >
                               <Card.Text className="mb-3 text-dark">
                                 Unauthorized
                               </Card.Text>
 
-                              <div className="row d-flex align-items-center mb-3">
-                                <div className="col">
-                                  <p className="text-muted p-0 m-0">
-                                    TikTok account
-                                  </p>
-                                  <div className="badge bg-secondary text-muted">
-                                    Offical
-                                  </div>
+                              {accountsLoading ? (
+                                <div className="my-3 text-muted">
+                                  <small>Loading accounts...</small>
                                 </div>
-                                <div className="col">
-                                  <p className="text-primary float-end">
-                                    <small>Get permission</small>
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="row d-flex align-items-center mb-3">
-                                <div className="col">
-                                  <p className="text-muted p-0 m-0">
-                                    TikTok account
-                                  </p>
-                                  <div className="badge bg-secondary text-muted">
-                                    Offical
-                                  </div>
-                                </div>
-                                <div className="col">
-                                  <p className="text-primary float-end">
-                                    <small>Edit access</small>
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="row d-flex align-items-center mb-3">
-                                <div className="col">
-                                  <p className="text-muted p-0 m-0">
-                                    TikTok account
-                                  </p>
-                                  <div className="badge bg-secondary text-muted">
-                                    Offical
-                                  </div>
-                                </div>
-                                <div className="col">
-                                  <p className="text-primary float-end">
-                                    <small>Edit access</small>
-                                  </p>
-                                </div>
-                              </div>
+                              ) : accountsError ? (
+                                <Alert variant="warning" className="my-3 py-2">
+                                  <small>{accountsError}</small>
+                                </Alert>
+                              ) : (
+                                (() => {
+                                  const unauthorizedAccounts =
+                                    availableAccounts.filter(
+                                      (account) =>
+                                        account.status === "Unauthorized"
+                                    );
+                                  return unauthorizedAccounts.length > 0 ? (
+                                    unauthorizedAccounts.map(
+                                      (account, index) => (
+                                        <div
+                                          key={
+                                            account.id ||
+                                            `unauthorized-${index}`
+                                          }
+                                          className="row d-flex align-items-center mb-3"
+                                        >
+                                          <div className="col">
+                                            <p className="text-muted p-0 m-0">
+                                              {account.name}
+                                            </p>
+                                            <div className="badge bg-secondary text-muted">
+                                              {account.type}
+                                            </div>
+                                          </div>
+                                          <div className="col">
+                                            <p className="text-primary float-end">
+                                              <small>Get permission</small>
+                                            </p>
+                                          </div>
+                                        </div>
+                                      )
+                                    )
+                                  ) : (
+                                    <div className="my-3 text-muted">
+                                      <small>No unauthorized accounts.</small>
+                                    </div>
+                                  );
+                                })()
+                              )}
                             </Card.Body>
                           </Card>
                         </Col>
                       </Row>
                     </Card.Body>
+                    <Card.Footer className="d-flex justify-content-end gap-2 pt-3">
+                      <Button variant="secondary" size="sm">
+                        Cancel
+                      </Button>
+                      <Button variant="primary" size="sm">
+                        Apply
+                      </Button>
+                    </Card.Footer>
                   </Card>
                 </Dropdown.Menu>
               </Dropdown>
@@ -516,7 +561,10 @@ export default function Step2({
                                     >
                                       Cancel
                                     </Button>
-                                    <Button variant="primary" className="btn-sm">
+                                    <Button
+                                      variant="primary"
+                                      className="btn-sm"
+                                    >
                                       Apply
                                     </Button>
                                   </Card.Footer>
@@ -563,4 +611,3 @@ export default function Step2({
     </Col>
   );
 }
-

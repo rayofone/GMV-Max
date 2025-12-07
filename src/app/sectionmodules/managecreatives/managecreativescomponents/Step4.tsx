@@ -12,11 +12,7 @@ import {
   Form,
   Button,
 } from "react-bootstrap";
-import {
-  CircleUser,
-  CircleQuestionMark,
-  X,
-} from "lucide-react";
+import { CircleUser, CircleQuestionMark, X, ChevronRight } from "lucide-react";
 import type { Creative } from "@/contexts/FirebaseContext";
 
 interface Step4Props {
@@ -65,7 +61,8 @@ export default function Step4({
   handleRemoveTag,
   handleClearAll,
 }: Step4Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const affiliateInputRef = useRef<HTMLInputElement>(null);
+  const allCreativesInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <Col sm={12} className="mb-4">
@@ -146,15 +143,17 @@ export default function Step4({
                 borderColor: showMenu ? "#007bff" : "#ced4da",
                 cursor: "text",
               }}
-              onClick={() => inputRef.current?.focus()}
+              onClick={() => {
+                setShowMenu(true);
+                affiliateInputRef.current?.focus();
+              }}
             >
-              <div className="d-flex flex-wrap p-1">
+              <div className="d-flex flex-nowrap align-items-center p-1">
                 {selectedTags.map((tag) => (
                   <Badge
                     key={tag.id}
-                    pill
                     bg="secondary"
-                    className="me-2 my-1 d-flex align-items-center text-muted"
+                    className="me-2 d-flex align-items-center text-muted flex-shrink-0"
                   >
                     {tag.name}
                     <X
@@ -169,16 +168,31 @@ export default function Step4({
                 ))}
 
                 <input
-                  ref={inputRef}
+                  ref={affiliateInputRef}
                   type="text"
                   placeholder={
-                    selectedTags.length > 0
-                      ? ""
-                      : "Type [/] Search and filter"
+                    selectedTags.length > 0 ? "" : "Type [/] Search and filter"
                   }
                   value={searchQuery}
                   onChange={handleSearchQueryChange}
                   onFocus={() => setShowMenu(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && searchQuery.trim()) {
+                      e.preventDefault();
+                      const matchingCreative = filterableCreatives.find(
+                        (c) =>
+                          c.name
+                            .toLowerCase()
+                            .includes(searchQuery.toLowerCase()) ||
+                          c.shop
+                            .toLowerCase()
+                            .includes(searchQuery.toLowerCase())
+                      );
+                      if (matchingCreative) {
+                        handleSelectTag(matchingCreative);
+                      }
+                    }
+                  }}
                   onBlur={(e) => {
                     setTimeout(() => {
                       const relatedTarget = e.relatedTarget as Node | null;
@@ -190,7 +204,7 @@ export default function Step4({
                       }
                     }, 150);
                   }}
-                  className="border-0 flex-grow-1 w-100 px-2"
+                  className="border-0 flex-grow-1 px-2"
                   style={{
                     outline: "none",
                     boxShadow: "none",
@@ -204,7 +218,10 @@ export default function Step4({
                 <Button
                   variant="link"
                   className="text-muted text-decoration-none p-2 ms-auto"
-                  onClick={handleClearAll}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClearAll();
+                  }}
                 >
                   Clear
                 </Button>
@@ -212,41 +229,243 @@ export default function Step4({
                 <></>
               )}
             </div>
-
             <Dropdown.Menu
-              show={showMenu}
-              style={{
-                width: "100%",
-                maxHeight: "300px",
-                overflowY: "auto",
-              }}
+              className="border-0 shadow-sm px-3"
+              style={{ width: "250px" }}
             >
-              {filterableCreatives.length > 0 ? (
-                filterableCreatives.map((creative) => (
-                  <Dropdown.Item
-                    key={creative.id}
-                    onClick={() => handleSelectTag(creative)}
+              <div className="rounded my-2">
+                <Dropdown>
+                  <Dropdown.Toggle
+                    id="affiliates-filter"
+                    className="btn-sm border-0 bg-transparent text-dark d-flex align-items-center p-0 w-100"
                   >
-                    <div className="d-flex align-items-center">
-                      <CircleUser
-                        strokeWidth={1.5}
-                        size={30}
-                        className="me-2"
-                      />
-                      <div>
-                        <div className="fw-bold">{creative.name}</div>
-                        <small className="text-muted">
-                          {creative.shop} (ID: {creative.id})
-                        </small>
-                      </div>
+                    <span className="me-auto" style={{ fontSize: "16px" }}>
+                      Affiliates (
+                      {
+                        filterableCreatives.filter(
+                          (c) => c.type === "Affiliate"
+                        ).length
+                      }{" "}
+                      available)
+                    </span>
+                    <span className="mb-1">
+                      <ChevronRight size={18} strokeWidth={2} />
+                    </span>
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu
+                    className="border-0 shadow-sm px-3"
+                    style={{
+                      width: "400px",
+                      marginLeft: "220px",
+                      marginTop: "-40px",
+                    }}
+                  >
+                    <div className="rounded my-2">
+                      <Card>
+                        <Card.Header className="d-flex align-items-center bg-transparent m-0 p-0 mb-3">
+                          <strong>Affiliates</strong>
+                        </Card.Header>
+                        <Card.Body className="p-0 mb-3">
+                          <input
+                            ref={affiliateInputRef}
+                            type="text"
+                            placeholder="Type [/] to Search or press Enter"
+                            value={searchQuery}
+                            onChange={handleSearchQueryChange}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && searchQuery.trim()) {
+                                e.preventDefault();
+                                // Try to find matching creative in affiliates
+                                const affiliateCreatives =
+                                  filterableCreatives.filter(
+                                    (c) => c.type === "Affiliate"
+                                  );
+                                const matchingCreative =
+                                  affiliateCreatives.find(
+                                    (c) =>
+                                      c.name
+                                        .toLowerCase()
+                                        .includes(searchQuery.toLowerCase()) ||
+                                      c.shop
+                                        .toLowerCase()
+                                        .includes(searchQuery.toLowerCase())
+                                  );
+                                if (matchingCreative) {
+                                  handleSelectTag(matchingCreative);
+                                }
+                              }
+                            }}
+                            className="form-control mb-3"
+                          />
+
+                          {filterableCreatives
+                            .filter((c) => c.type === "Affiliate")
+                            .map((creative) => (
+                              <div
+                                className="d-flex align-items-center mb-3"
+                                key={creative.id}
+                              >
+                                <input
+                                  className="form-check-input me-2"
+                                  type="checkbox"
+                                  id={`filter-creative-${creative.id}`}
+                                  checked={selectedTags.some(
+                                    (tag) => tag.id === creative.id
+                                  )}
+                                  onChange={() => handleSelectTag(creative)}
+                                />
+                                <label
+                                  className="form-check-label d-flex"
+                                  htmlFor={`filter-creative-${creative.id}`}
+                                  style={{ fontSize: "14px" }}
+                                >
+                                  <span className="col me-2">
+                                    <CircleUser strokeWidth={1.5} size={42} />
+                                  </span>
+                                  <span className="w-100">
+                                    {creative.name}
+                                    <br />
+                                    {creative.shop}
+                                  </span>
+                                </label>
+                              </div>
+                            ))}
+                        </Card.Body>
+                        <Card.Footer className="bg-transparent p-0 pt-3 d-flex justify-content-end">
+                          <caption className="text-muted me-auto pt-2">
+                            {selectedTags.length} selected
+                          </caption>
+                          <Button
+                            variant="secondary"
+                            className="btn-sm me-3"
+                            onClick={() => setShowMenu(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="primary"
+                            className="btn-sm"
+                            onClick={() => setShowMenu(false)}
+                          >
+                            Apply
+                          </Button>
+                        </Card.Footer>
+                      </Card>
                     </div>
-                  </Dropdown.Item>
-                ))
-              ) : (
-                <Dropdown.Item disabled>
-                  No results found for &quot;{searchQuery}&quot;
-                </Dropdown.Item>
-              )}
+                  </Dropdown.Menu>
+                </Dropdown>
+              </div>
+
+              {/* Add more filter categories here if needed */}
+              <div className="rounded my-2">
+                <Dropdown>
+                  <Dropdown.Toggle
+                    id="all-creatives-filter"
+                    className="btn-sm border-0 bg-transparent text-dark d-flex align-items-center p-0 w-100"
+                  >
+                    <span className="me-auto" style={{ fontSize: "16px" }}>
+                      All Creatives ({filterableCreatives.length} available)
+                    </span>
+                    <span className="mb-1">
+                      <ChevronRight size={18} strokeWidth={2} />
+                    </span>
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu
+                    className="border-0 shadow-sm px-3"
+                    style={{
+                      width: "400px",
+                      marginLeft: "220px",
+                      marginTop: "-40px",
+                    }}
+                  >
+                    <div className="rounded my-2">
+                      <Card>
+                        <Card.Header className="d-flex align-items-center bg-transparent m-0 p-0 mb-3">
+                          <strong>All Creatives</strong>
+                        </Card.Header>
+                        <Card.Body className="p-0 mb-3">
+                          <input
+                            ref={allCreativesInputRef}
+                            type="text"
+                            placeholder="Type [/] to Search or press Enter"
+                            value={searchQuery}
+                            onChange={handleSearchQueryChange}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && searchQuery.trim()) {
+                                e.preventDefault();
+                                const matchingCreative =
+                                  filterableCreatives.find(
+                                    (c) =>
+                                      c.name
+                                        .toLowerCase()
+                                        .includes(searchQuery.toLowerCase()) ||
+                                      c.shop
+                                        .toLowerCase()
+                                        .includes(searchQuery.toLowerCase())
+                                  );
+                                if (matchingCreative) {
+                                  handleSelectTag(matchingCreative);
+                                }
+                              }
+                            }}
+                            className="form-control mb-3"
+                          />
+
+                          {filterableCreatives.map((creative) => (
+                            <div
+                              className="d-flex align-items-center mb-3"
+                              key={creative.id}
+                            >
+                              <input
+                                className="form-check-input me-2"
+                                type="checkbox"
+                                id={`filter-all-creative-${creative.id}`}
+                                checked={selectedTags.some(
+                                  (tag) => tag.id === creative.id
+                                )}
+                                onChange={() => handleSelectTag(creative)}
+                              />
+                              <label
+                                className="form-check-label d-flex"
+                                htmlFor={`filter-all-creative-${creative.id}`}
+                                style={{ fontSize: "14px" }}
+                              >
+                                <span className="col me-2">
+                                  <CircleUser strokeWidth={1.5} size={42} />
+                                </span>
+                                <span className="w-100">
+                                  {creative.name}
+                                  <br />
+                                  {creative.shop}
+                                </span>
+                              </label>
+                            </div>
+                          ))}
+                        </Card.Body>
+                        <Card.Footer className="bg-transparent p-0 pt-3 d-flex justify-content-end">
+                          <caption className="text-muted me-auto pt-2">
+                            {selectedTags.length} selected
+                          </caption>
+                          <Button
+                            variant="secondary"
+                            className="btn-sm me-3"
+                            onClick={() => setShowMenu(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="primary"
+                            className="btn-sm"
+                            onClick={() => setShowMenu(false)}
+                          >
+                            Apply
+                          </Button>
+                        </Card.Footer>
+                      </Card>
+                    </div>
+                  </Dropdown.Menu>
+                </Dropdown>
+              </div>
             </Dropdown.Menu>
           </Dropdown>
 
@@ -291,7 +510,7 @@ export default function Step4({
                           }}
                           key={creative.id}
                         >
-                          {isValid && !hasError ? (
+                          {isValid && !hasError && creative.video ? (
                             <video
                               src={creative.video}
                               loop
@@ -304,7 +523,14 @@ export default function Step4({
                                 objectFit: "cover",
                                 backgroundColor: "#f5f5f5",
                               }}
-                              onError={() => handleVideoError(creative.id)}
+                              onError={() => {
+                                console.error(
+                                  "Video load error for creative:",
+                                  creative.id,
+                                  creative.video
+                                );
+                                handleVideoError(creative.id);
+                              }}
                             >
                               Your browser does not support the video tag.
                             </video>
@@ -336,10 +562,7 @@ export default function Step4({
                               </p>
                             </div>
                           )}
-                          <p
-                            className="mt-2 mb-0"
-                            style={{ fontSize: "14px" }}
-                          >
+                          <p className="mt-2 mb-0" style={{ fontSize: "14px" }}>
                             {creative.name}
                           </p>
                         </Col>
@@ -383,9 +606,7 @@ export default function Step4({
                         size={24}
                         className="mb-2"
                       />
-                      <p className="mb-0">
-                        No affiliate creatives available.
-                      </p>
+                      <p className="mb-0">No affiliate creatives available.</p>
                     </Alert>
                   </Col>
                 )}
@@ -397,4 +618,3 @@ export default function Step4({
     </Col>
   );
 }
-

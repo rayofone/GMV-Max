@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Container, Button, Card, Row, Col } from "react-bootstrap";
 import Link from "next/link";
 import { useFirebase, type Creative } from "@/contexts/FirebaseContext";
@@ -50,6 +50,20 @@ export default function ManageCreatives() {
   const [excludedCreativeIds, setExcludedCreativeIds] = useState<
     (string | number)[]
   >([]);
+
+  // SELECTED ACCOUNTS STATE
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+
+  // Handle account toggle
+  const handleAccountToggle = (accountId: string) => {
+    setSelectedAccountIds((prev) => {
+      if (prev.includes(accountId)) {
+        return prev.filter((id) => id !== accountId);
+      } else {
+        return [...prev, accountId];
+      }
+    });
+  };
 
   // SEARCH FUNCTIONALITY ACCOUNTS
   // 2. Filter data based on search term
@@ -167,19 +181,17 @@ export default function ManageCreatives() {
 
   // HELPER FUNCTION: Check if video path is valid
   const isValidVideoPath = (videoPath: string): boolean => {
-    if (!videoPath || videoPath.trim() === "" || videoPath === "/creatives/") {
+    if (!videoPath || typeof videoPath !== "string") {
       return false;
     }
-    // Check if it's a valid file path (ends with video extension or is a valid URL)
-    const videoExtensions = [".mp4", ".mov", ".webm", ".ogg", ".avi", ".mkv"];
-    const hasExtension = videoExtensions.some((ext) =>
-      videoPath.toLowerCase().endsWith(ext)
-    );
-    return (
-      hasExtension ||
-      videoPath.startsWith("http://") ||
-      videoPath.startsWith("https://")
-    );
+    const trimmed = videoPath.trim();
+    // Reject empty strings and placeholder paths
+    if (trimmed === "" || trimmed === "/creatives/" || trimmed === "/") {
+      return false;
+    }
+    // Accept any non-empty string that looks like a path or URL
+    // This is more lenient to handle various video storage formats
+    return trimmed.length > 0;
   };
 
   // HANDLER: Track video load errors
@@ -188,9 +200,56 @@ export default function ManageCreatives() {
   };
 
   // FILTER: Get creatives with valid videos
-  const creativesWithVideos = creativesToDisplay.filter((creative) =>
-    isValidVideoPath(creative.video)
-  );
+  // Show all creatives - the component will handle video validation and show fallback if needed
+  let creativesWithVideos = creativesToDisplay.filter((creative) => {
+    // Only filter out if video is completely empty or is a placeholder
+    const video = creative.video || "";
+    return (
+      video.trim() !== "" &&
+      video.trim() !== "/creatives/" &&
+      video.trim() !== "/"
+    );
+  });
+
+  // Apply inclusion filter: if tags are selected, only show those creatives
+  if (selectedTags.length > 0) {
+    const selectedTagIds = selectedTags.map((tag) => tag.id);
+    creativesWithVideos = creativesWithVideos.filter((creative) =>
+      selectedTagIds.includes(creative.id)
+    );
+  }
+
+  // Debug: Log all creatives to see what we have
+  useEffect(() => {
+    if (availableCreatives.length > 0) {
+      console.log("=== CREATIVES DEBUG ===");
+      console.log("Total available creatives:", availableCreatives.length);
+      console.log("Available creatives:", availableCreatives);
+      console.log("Filtered creatives (search):", filteredCreatives.length);
+      console.log(
+        "Creatives to display (after exclusions):",
+        creativesToDisplay.length
+      );
+      console.log("Creatives with videos:", creativesWithVideos.length);
+      console.log("Excluded IDs:", excludedCreativeIds);
+
+      // Log each creative's video field
+      availableCreatives.forEach((creative) => {
+        console.log(`Creative ${creative.id} (${creative.name}):`, {
+          video: creative.video,
+          videoType: typeof creative.video,
+          isValid: isValidVideoPath(creative.video),
+          isExcluded: excludedCreativeIds.includes(creative.id),
+        });
+      });
+    }
+  }, [
+    availableCreatives,
+    filteredCreatives,
+    creativesToDisplay,
+    creativesWithVideos,
+    excludedCreativeIds,
+  ]);
 
   return (
     <Container className="py-5 mt-5">
@@ -220,6 +279,8 @@ export default function ManageCreatives() {
                   filteredAccounts={filteredAccounts}
                   searchTerm={searchTerm}
                   handleSearchChange={handleSearchChange}
+                  selectedAccountIds={selectedAccountIds}
+                  handleAccountToggle={handleAccountToggle}
                   filteredCreatives={filteredCreatives}
                   searchCreativeTerm={searchCreativeTerm}
                   handleCreativeSearchChange={handleCreativeSearchChange}

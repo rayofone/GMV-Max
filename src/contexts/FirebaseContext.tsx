@@ -18,6 +18,7 @@ export interface Account {
   id?: string;
   name: string;
   type: string;
+  status?: string; // e.g., "selected", "available", "unauthorized"
 }
 
 // Context interface
