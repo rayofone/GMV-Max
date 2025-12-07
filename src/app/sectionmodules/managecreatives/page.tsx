@@ -174,9 +174,9 @@ export default function ManageCreatives() {
         creative.type.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  // SPECIFIC AFFILAITE MATCH
+  // SPECIFIC AFFILIATE MATCH - Filter by videoType
   const affiliateCreatives = creativesToDisplay.filter(
-    (creative) => creative.type === "Affiliate"
+    (creative) => creative.videoType === "Affiliate"
   );
 
   // HELPER FUNCTION: Check if video path is valid

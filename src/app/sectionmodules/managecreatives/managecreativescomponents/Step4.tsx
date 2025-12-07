@@ -87,11 +87,16 @@ export default function Step4({
                 <Nav.Item>
                   <Nav.Link
                     className={
-                      "border border-bottom border-top-0 border-start-0 border-end-0" +
+                      "border-0 border-bottom rounded-0" +
                       (TikTokPostsTab
-                        ? " border-primary text-dark"
-                        : "border-secondary text-dark")
+                        ? " border-primary border-bottom text-dark"
+                        : " border-secondary border-bottom text-dark")
                     }
+                    style={{
+                      borderTop: "none",
+                      borderLeft: "none",
+                      borderRight: "none",
+                    }}
                     onClick={onTikTokPostsClick}
                   >
                     TikTok posts
@@ -100,11 +105,16 @@ export default function Step4({
                 <Nav.Item>
                   <Nav.Link
                     className={
-                      "border border-bottom border-top-0 border-start-0 border-end-0" +
+                      "border-0 border-bottom rounded-0" +
                       (AffiliatesTab
-                        ? " border-primary text-dark"
-                        : "border-secondary text-dark")
+                        ? " border-primary border-bottom text-dark"
+                        : " border-secondary border-bottom text-dark")
                     }
+                    style={{
+                      borderTop: "none",
+                      borderLeft: "none",
+                      borderRight: "none",
+                    }}
                     onClick={onAffiliatesClick}
                   >
                     Affiliates
@@ -338,14 +348,22 @@ export default function Step4({
                           <Button
                             variant="secondary"
                             className="btn-sm me-3"
-                            onClick={() => setShowMenu(false)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setShowMenu(false);
+                            }}
                           >
                             Cancel
                           </Button>
                           <Button
                             variant="primary"
                             className="btn-sm"
-                            onClick={() => setShowMenu(false)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setShowMenu(false);
+                            }}
                           >
                             Apply
                           </Button>
@@ -449,14 +467,22 @@ export default function Step4({
                           <Button
                             variant="secondary"
                             className="btn-sm me-3"
-                            onClick={() => setShowMenu(false)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setShowMenu(false);
+                            }}
                           >
                             Cancel
                           </Button>
                           <Button
                             variant="primary"
                             className="btn-sm"
-                            onClick={() => setShowMenu(false)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setShowMenu(false);
+                            }}
                           >
                             Apply
                           </Button>
@@ -586,18 +612,98 @@ export default function Step4({
                 )}
               </>
             ) : (
-              <Col size={12} className="d-flex flex-wrap gap-3">
-                {affiliateCreatives.length > 0 ? (
-                  affiliateCreatives.map((creative) => (
-                    <Col
-                      sm={2}
-                      className="mb-4 bg-secondary"
-                      style={{ height: "300px" }}
-                      key={creative.id}
-                    >
-                      {creative.name}
-                    </Col>
-                  ))
+              <>
+                {creativesLoading ? (
+                  <Col size={12}>
+                    <Alert variant="info" className="text-center">
+                      <CircleQuestionMark
+                        strokeWidth={1.5}
+                        size={24}
+                        className="mb-2"
+                      />
+                      <p className="mb-0">Loading creatives...</p>
+                    </Alert>
+                  </Col>
+                ) : creativesError ? (
+                  <Col size={12}>
+                    <Alert variant="warning" className="text-center">
+                      <CircleQuestionMark
+                        strokeWidth={1.5}
+                        size={24}
+                        className="mb-2"
+                      />
+                      <p className="mb-0">{creativesError}</p>
+                    </Alert>
+                  </Col>
+                ) : affiliateCreatives.length > 0 ? (
+                  <Col size={12} className="d-flex flex-wrap gap-3">
+                    {affiliateCreatives.map((creative) => {
+                      const hasError = videoErrors.has(creative.id);
+                      const isValid = isValidVideoPath(creative.video);
+
+                      return (
+                        <Col
+                          sm={2}
+                          className="mb-5"
+                          style={{
+                            height: "350px",
+                            width: "200px",
+                          }}
+                          key={creative.id}
+                        >
+                          {isValid && !hasError && creative.video ? (
+                            <video
+                              src={creative.video}
+                              loop
+                              muted
+                              autoPlay={false}
+                              controls={true}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                                backgroundColor: "#f5f5f5",
+                              }}
+                              onError={() => {
+                                console.error(
+                                  "Video load error for creative:",
+                                  creative.id,
+                                  creative.video
+                                );
+                                handleVideoError(creative.id);
+                              }}
+                            >
+                              Your browser does not support the video tag.
+                            </video>
+                          ) : (
+                            <div
+                              className="d-flex flex-column align-items-center justify-content-center bg-secondary text-white rounded"
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                minHeight: "300px",
+                              }}
+                            >
+                              <CircleUser
+                                strokeWidth={1.5}
+                                size={48}
+                                className="mb-2 opacity-50"
+                              />
+                              <p
+                                className="mb-0 text-center px-2"
+                                style={{ fontSize: "14px" }}
+                              >
+                                No video available
+                              </p>
+                            </div>
+                          )}
+                          <p className="mt-2 mb-0" style={{ fontSize: "14px" }}>
+                            {creative.name}
+                          </p>
+                        </Col>
+                      );
+                    })}
+                  </Col>
                 ) : (
                   <Col size={12}>
                     <Alert variant="info" className="text-center">
@@ -610,7 +716,7 @@ export default function Step4({
                     </Alert>
                   </Col>
                 )}
-              </Col>
+              </>
             )}
           </Row>
         </Card.Body>

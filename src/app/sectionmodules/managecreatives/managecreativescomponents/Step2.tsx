@@ -67,6 +67,7 @@ export default function Step2({
   advancedOpen,
   setAdvancedOpen,
 }: Step2Props) {
+  const [accountsDropdownOpen, setAccountsDropdownOpen] = React.useState(false);
   return (
     <Col sm={12} className="mb-4">
       <Card>
@@ -186,7 +187,11 @@ export default function Step2({
               <p style={{ fontSize: "14px" }} className="fw-bold pt-3">
                 Selected accounts:
               </p>
-              <Dropdown className="ms-3 h-100">
+              <Dropdown
+                className="ms-3 h-100"
+                show={accountsDropdownOpen}
+                onToggle={(nextShow) => setAccountsDropdownOpen(nextShow)}
+              >
                 <Dropdown.Toggle
                   variant="secondary"
                   id="dropdown-basic"
@@ -374,11 +379,27 @@ export default function Step2({
                         </Col>
                       </Row>
                     </Card.Body>
-                    <Card.Footer className="d-flex justify-content-end gap-2 pt-3">
-                      <Button variant="secondary" size="sm">
+                    <Card.Footer className="d-flex justify-content-end gap-2 pt-3 bg-transparent">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setAccountsDropdownOpen(false);
+                        }}
+                      >
                         Cancel
                       </Button>
-                      <Button variant="primary" size="sm">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setAccountsDropdownOpen(false);
+                        }}
+                      >
                         Apply
                       </Button>
                     </Card.Footer>

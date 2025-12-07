@@ -12,6 +12,7 @@ export interface Creative {
   video: string;
   name: string;
   shop: string;
+  videoType?: string; // e.g., "Affiliate"
 }
 
 export interface Account {
@@ -79,17 +80,18 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
       setCreativesError(null);
       const creativesCollection = collection(db, "creatives");
       const creativesSnapshot = await getDocs(creativesCollection);
-      const creativesData: Creative[] = creativesSnapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          type: data.type || "",
-          preview: data.preview || "",
-          video: data.video || "",
-          name: data.name || "",
-          shop: data.shop || "",
-        };
-      });
+          const creativesData: Creative[] = creativesSnapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              type: data.type || "",
+              preview: data.preview || "",
+              video: data.video || "",
+              name: data.name || "",
+              shop: data.shop || "",
+              videoType: data.videoType || "",
+            };
+          });
       setCreatives(creativesData);
     } catch (error) {
       console.error("Error fetching creatives:", error);
