@@ -19,6 +19,7 @@ import type {
   Creative,
   Product,
   Shop,
+  Campaign,
 } from "@/types/admin";
 
 // Helper to convert Firestore timestamps
@@ -294,5 +295,62 @@ export const updateShop = async (
 
 export const deleteShop = async (id: string): Promise<void> => {
   await deleteDoc(doc(db, "shops", id));
+};
+
+// ==================== CAMPAIGNS ====================
+
+export const getCampaign = async (id: string): Promise<Campaign | null> => {
+  const docRef = doc(db, "campaigns", id);
+  const docSnap = await getDoc(docRef);
+  if (docSnap.exists()) {
+    return { id: docSnap.id, ...convertTimestamps(docSnap.data()) } as Campaign;
+  }
+  return null;
+};
+
+export const getCampaigns = async (): Promise<Campaign[]> => {
+  const querySnapshot = await getDocs(collection(db, "campaigns"));
+  return querySnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...convertTimestamps(doc.data()),
+  })) as Campaign[];
+};
+
+export const getCampaignsByUser = async (userId: string): Promise<Campaign[]> => {
+  const q = query(
+    collection(db, "campaigns"),
+    where("userId", "==", userId)
+  );
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...convertTimestamps(doc.data()),
+  })) as Campaign[];
+};
+
+export const createCampaign = async (
+  campaignData: Omit<Campaign, "id">
+): Promise<string> => {
+  const docRef = await addDoc(collection(db, "campaigns"), {
+    ...campaignData,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  });
+  return docRef.id;
+};
+
+export const updateCampaign = async (
+  id: string,
+  campaignData: Partial<Omit<Campaign, "id">>
+): Promise<void> => {
+  const docRef = doc(db, "campaigns", id);
+  await updateDoc(docRef, {
+    ...campaignData,
+    updatedAt: Timestamp.now(),
+  });
+};
+
+export const deleteCampaign = async (id: string): Promise<void> => {
+  await deleteDoc(doc(db, "campaigns", id));
 };
 

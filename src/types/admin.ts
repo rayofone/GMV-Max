@@ -5,6 +5,7 @@ export interface User {
   email: string;
   name: string;
   role: "admin" | "user";
+  shops?: string[]; // shop IDs
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -59,3 +60,17 @@ export interface Shop {
   updatedAt?: Date;
 }
 
+export interface Campaign {
+  id?: string;
+  name: string;
+  budget?: string;
+  startDate?: string;
+  endDate?: string;
+  targetAudience?: string;
+  description?: string;
+  shop: string; // shop ID
+  account: string; // account ID
+  userId: string; // user ID who created it
+  createdAt?: Date;
+  updatedAt?: Date;
+}

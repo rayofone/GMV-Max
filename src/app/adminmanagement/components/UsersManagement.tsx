@@ -1,25 +1,21 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Table,
-  Button,
-  Modal,
-  Form,
-  Alert,
-  Badge,
-} from "react-bootstrap";
+import { Table, Button, Modal, Form, Alert, Badge } from "react-bootstrap";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import {
   getUsers,
   createUser,
   updateUser,
   deleteUser,
+  getShops,
 } from "@/lib/firebaseAdmin";
 import type { User } from "@/types/admin";
+import type { Shop } from "@/types/admin";
 
 export default function UsersManagement() {
   const [users, setUsers] = useState<User[]>([]);
+  const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -28,6 +24,7 @@ export default function UsersManagement() {
     email: "",
     name: "",
     role: "user" as "admin" | "user",
+    shops: [] as string[],
   });
 
   useEffect(() => {
@@ -38,8 +35,12 @@ export default function UsersManagement() {
     try {
       setLoading(true);
       setError(null);
-      const data = await getUsers();
-      setUsers(data);
+      const [usersData, shopsData] = await Promise.all([
+        getUsers(),
+        getShops(),
+      ]);
+      setUsers(usersData);
+      setShops(shopsData);
     } catch (err) {
       setError("Failed to load users");
       console.error(err);
@@ -55,6 +56,7 @@ export default function UsersManagement() {
         email: user.email,
         name: user.name,
         role: user.role,
+        shops: user.shops || [],
       });
     } else {
       setEditingUser(null);
@@ -62,6 +64,7 @@ export default function UsersManagement() {
         email: "",
         name: "",
         role: "user",
+        shops: [],
       });
     }
     setShowModal(true);
@@ -74,6 +77,16 @@ export default function UsersManagement() {
       email: "",
       name: "",
       role: "user",
+      shops: [],
+    });
+  };
+
+  const toggleShop = (shopId: string) => {
+    setFormData({
+      ...formData,
+      shops: formData.shops.includes(shopId)
+        ? formData.shops.filter((id) => id !== shopId)
+        : [...formData.shops, shopId],
     });
   };
 
@@ -127,6 +140,7 @@ export default function UsersManagement() {
             <th>Name</th>
             <th>Email</th>
             <th>Role</th>
+            <th>Shops</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -139,6 +153,15 @@ export default function UsersManagement() {
                 <Badge bg={user.role === "admin" ? "danger" : "secondary"}>
                   {user.role}
                 </Badge>
+              </td>
+              <td>
+                {user.shops && user.shops.length > 0 ? (
+                  <Badge bg="info">
+                    {user.shops.length} shop{user.shops.length !== 1 ? "s" : ""}
+                  </Badge>
+                ) : (
+                  <span className="text-muted">No shops</span>
+                )}
               </td>
               <td>
                 <Button
@@ -163,9 +186,7 @@ export default function UsersManagement() {
 
       <Modal show={showModal} onHide={handleCloseModal}>
         <Modal.Header closeButton>
-          <Modal.Title>
-            {editingUser ? "Edit User" : "Create User"}
-          </Modal.Title>
+          <Modal.Title>{editingUser ? "Edit User" : "Create User"}</Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleSubmit}>
           <Modal.Body>
@@ -206,6 +227,24 @@ export default function UsersManagement() {
                 <option value="admin">Admin</option>
               </Form.Select>
             </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Shops</Form.Label>
+              <div style={{ maxHeight: "150px", overflowY: "auto" }}>
+                {shops.length > 0 ? (
+                  shops.map((shop) => (
+                    <Form.Check
+                      key={shop.id}
+                      type="checkbox"
+                      label={shop.name}
+                      checked={formData.shops.includes(shop.id || "")}
+                      onChange={() => shop.id && toggleShop(shop.id)}
+                    />
+                  ))
+                ) : (
+                  <p className="text-muted">No shops available</p>
+                )}
+              </div>
+            </Form.Group>
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={handleCloseModal}>
@@ -220,4 +259,3 @@ export default function UsersManagement() {
     </div>
   );
 }
-

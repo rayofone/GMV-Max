@@ -1,22 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Container,
   Form,
-  InputGroup,
   Button,
   Card,
   Row,
   Col,
   Alert,
-  ToggleButton,
-  ToggleButtonGroup,
   Accordion,
 } from "react-bootstrap";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import { useFirebase } from "@/contexts/FirebaseContext";
+import { createCampaign, getShops } from "@/lib/firebaseAdmin";
+import type { Shop } from "@/types/admin";
 
 export default function CreateCampaign() {
+  const { currentUser, userData } = useAuth();
+  const { accounts } = useFirebase();
+  const [shops, setShops] = useState<Shop[]>([]);
   const [formData, setFormData] = useState({
     campaignName: "",
     budget: "",
@@ -24,10 +28,32 @@ export default function CreateCampaign() {
     endDate: "",
     targetAudience: "",
     description: "",
+    shop: "",
+    account: "",
   });
 
   const [submitted, setSubmitted] = useState(false);
   const [pgm, setPgm] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadShops = async () => {
+      if (userData?.shops && userData.shops.length > 0) {
+        const allShops = await getShops();
+        const userShops = allShops.filter((shop) =>
+          userData.shops?.includes(shop.id || "")
+        );
+        setShops(userShops);
+        // Auto-select first shop if only one
+        if (userShops.length === 1) {
+          setFormData((prev) => ({ ...prev, shop: userShops[0].id || "" }));
+        }
+      }
+    };
+    if (userData) {
+      loadShops();
+    }
+  }, [userData]);
 
   const handlePgmChange = (value: boolean) => {
     setPgm(value);
@@ -47,24 +73,54 @@ export default function CreateCampaign() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    // Here you would typically send the data to your backend
-    console.log("Campaign Data:", formData);
+    setError(null);
 
-    // Reset form after 2 seconds
-    setTimeout(() => {
-      setFormData({
-        campaignName: "",
-        budget: "",
-        startDate: "",
-        endDate: "",
-        targetAudience: "",
-        description: "",
+    if (!currentUser || !userData) {
+      setError("You must be logged in to create a campaign");
+      return;
+    }
+
+    if (!formData.shop || !formData.account) {
+      setError("Please select a shop and account");
+      return;
+    }
+
+    try {
+      setSubmitted(true);
+      await createCampaign({
+        name: formData.campaignName,
+        budget: formData.budget,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        targetAudience: formData.targetAudience,
+        description: formData.description,
+        shop: formData.shop,
+        account: formData.account,
+        userId: currentUser.uid,
       });
+
+      // Reset form after 2 seconds
+      setTimeout(() => {
+        setFormData({
+          campaignName: "",
+          budget: "",
+          startDate: "",
+          endDate: "",
+          targetAudience: "",
+          description: "",
+          shop: formData.shop, // Keep shop selected
+          account: "", // Reset account
+        });
+        setSubmitted(false);
+      }, 2000);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to create campaign"
+      );
       setSubmitted(false);
-    }, 2000);
+    }
   };
 
   return (
@@ -82,6 +138,11 @@ export default function CreateCampaign() {
       </Row>
 
       {/* NOTIFICATION */}
+      {error && (
+        <Alert variant="danger" dismissible onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
       {submitted && (
         <Alert
           variant="success"
@@ -94,6 +155,50 @@ export default function CreateCampaign() {
 
       <Row>
         <Col lg={9}>
+          {/* Shop and Account Selection */}
+          {shops.length > 0 && (
+            <Card className="mb-4">
+              <Card.Body>
+                <Form.Group className="mb-3">
+                  <Form.Label>Shop *</Form.Label>
+                  <Form.Select
+                    value={formData.shop}
+                    onChange={(e) =>
+                      setFormData({ ...formData, shop: e.target.value })
+                    }
+                    required
+                  >
+                    <option value="">Select a shop</option>
+                    {shops.map((shop) => (
+                      <option key={shop.id} value={shop.id}>
+                        {shop.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>Account *</Form.Label>
+                  <Form.Select
+                    value={formData.account}
+                    onChange={(e) =>
+                      setFormData({ ...formData, account: e.target.value })
+                    }
+                    required
+                    disabled={!formData.shop}
+                  >
+                    <option value="">Select an account</option>
+                    {accounts
+                      .filter((acc) => acc.shops?.includes(formData.shop))
+                      .map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name}
+                        </option>
+                      ))}
+                  </Form.Select>
+                </Form.Group>
+              </Card.Body>
+            </Card>
+          )}
           {/* <Row className="mb-4">
                 <div
                     type="radio" 

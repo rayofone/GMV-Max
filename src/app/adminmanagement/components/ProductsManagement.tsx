@@ -18,12 +18,14 @@ import {
   getShops,
   getCreatives,
 } from "@/lib/firebaseAdmin";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Product } from "@/types/admin";
 import type { Account } from "@/types/admin";
 import type { Shop } from "@/types/admin";
 import type { Creative } from "@/types/admin";
 
 export default function ProductsManagement() {
+  const { userData } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);

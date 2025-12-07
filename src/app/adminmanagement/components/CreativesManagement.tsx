@@ -18,11 +18,13 @@ import {
   getAccounts,
   getShops,
 } from "@/lib/firebaseAdmin";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Creative } from "@/types/admin";
 import type { Account } from "@/types/admin";
 import type { Shop } from "@/types/admin";
 
 export default function CreativesManagement() {
+  const { userData } = useAuth();
   const [creatives, setCreatives] = useState<Creative[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);
@@ -60,8 +62,32 @@ export default function CreativesManagement() {
         getShops(),
       ]);
       setCreatives(creativesData);
-      setAccounts(accountsData);
-      setShops(shopsData);
+      
+      // Filter accounts and shops by user's shops (unless admin)
+      if (userData?.role === "admin") {
+        setAccounts(accountsData);
+        setShops(shopsData);
+      } else if (userData?.shops && userData.shops.length > 0) {
+        // Filter accounts that have user's shops
+        const filteredAccounts = accountsData.filter((account) =>
+          account.shops?.some((shopId) => userData.shops?.includes(shopId))
+        );
+        setAccounts(filteredAccounts);
+        
+        // Filter shops to only user's shops
+        const filteredShops = shopsData.filter((shop) =>
+          userData.shops?.includes(shop.id || "")
+        );
+        setShops(filteredShops);
+        
+        // Auto-select first shop if only one
+        if (filteredShops.length === 1 && !formData.shop) {
+          setFormData((prev) => ({ ...prev, shop: filteredShops[0].id || "" }));
+        }
+      } else {
+        setAccounts([]);
+        setShops([]);
+      }
     } catch (err) {
       setError("Failed to load data");
       console.error(err);
