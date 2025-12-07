@@ -1,15 +1,106 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Container, Button, Card, Row, Col } from "react-bootstrap";
+import { Container, Button, Row, Col } from "react-bootstrap";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useFirebase, type Creative } from "@/contexts/FirebaseContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useShop } from "@/contexts/ShopContext";
+import {
+  updateCampaign,
+  getCampaign,
+  createCampaign,
+  updateCreative,
+  getProductsByShop,
+  updateProduct,
+} from "@/lib/firebaseAdmin";
 import Step1 from "./managecreativescomponents/Step1";
 import Step2 from "./managecreativescomponents/Step2";
 import Step3 from "./managecreativescomponents/Step3";
 import Step4 from "./managecreativescomponents/Step4";
 
 export default function ManageCreatives() {
+  const router = useRouter();
+  const { currentUser, userData } = useAuth();
+  const { selectedShopId, availableShops } = useShop();
+  const { accounts } = useFirebase();
+  const [campaignId, setCampaignId] = useState<string | null>(null);
+  const [campaignCreated, setCampaignCreated] = useState(false);
+
+  // Get campaign ID from URL params on client side
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlCampaignId = params.get("campaignId");
+      if (urlCampaignId) {
+        setCampaignId(urlCampaignId);
+      }
+    }
+  }, []);
+
+  // Create campaign automatically when page loads (if no campaignId exists)
+  useEffect(() => {
+    const createCampaignOnLoad = async () => {
+      if (
+        !campaignId &&
+        !campaignCreated &&
+        currentUser &&
+        userData &&
+        selectedShopId &&
+        availableShops.length > 0 &&
+        accounts.length > 0
+      ) {
+        try {
+          const selectedShop = availableShops.find(
+            (s) => s.id === selectedShopId
+          );
+          if (!selectedShop) return;
+
+          // Get first account for the shop
+          const shopAccounts = accounts.filter((acc) =>
+            acc.shops?.includes(selectedShop.id || "")
+          );
+          const firstAccount = shopAccounts[0];
+
+          if (firstAccount && firstAccount.id) {
+            const newCampaignId = await createCampaign({
+              name: `Campaign - ${new Date().toLocaleDateString()}`,
+              type: "products", // Default type
+              shop: selectedShop.id || "",
+              account: firstAccount.id,
+              userId: currentUser.uid,
+              selectedCreatives: [],
+              selectedAccounts: [],
+              excludedCreatives: [],
+              creatives: [],
+            });
+            setCampaignId(newCampaignId);
+            setCampaignCreated(true);
+            // Update URL without reload
+            window.history.replaceState(
+              {},
+              "",
+              `/sectionmodules/managecreatives?campaignId=${newCampaignId}`
+            );
+          }
+        } catch (error) {
+          console.error("Error creating campaign on load:", error);
+        }
+      }
+    };
+
+    createCampaignOnLoad();
+  }, [
+    campaignId,
+    campaignCreated,
+    currentUser,
+    userData,
+    selectedShopId,
+    availableShops,
+    accounts,
+  ]);
+
   // Get data from Firebase context
   const {
     accounts: availableAccounts,
@@ -22,6 +113,10 @@ export default function ManageCreatives() {
 
   const [autoMode, setAutoMode] = useState(true);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  // Manual selection state
+  const [selectedCreativeIds, setSelectedCreativeIds] = useState<
+    (string | number)[]
+  >([]);
   // TABS
   const [TikTokPostsTab, setTikTokPostsTab] = useState(true);
   const [AffiliatesTab, setAffiliatesTab] = useState(false);
@@ -80,6 +175,62 @@ export default function ManageCreatives() {
   // AUTO TO MANUAL HANDLER
   const handleModeChange = (value: boolean) => {
     setAutoMode(value);
+    if (value) {
+      // Clear manual selections when switching to auto mode
+      setSelectedCreativeIds([]);
+    }
+  };
+
+  // Real-time save function - saves campaign changes as user makes them
+  const saveCampaignChanges = async (updates: {
+    selectedAccounts?: string[];
+    excludedCreativeIds?: (string | number)[];
+    selectedCreatives?: (string | number)[];
+  }) => {
+    if (!campaignId) return;
+
+    try {
+      await updateCampaign(campaignId, updates);
+    } catch (error) {
+      console.error("Error saving campaign changes:", error);
+      // Don't show alert for real-time saves to avoid annoying the user
+    }
+  };
+
+  // Save selectedAccounts changes in real-time
+  useEffect(() => {
+    if (campaignId && campaignCreated) {
+      saveCampaignChanges({ selectedAccounts: selectedAccountIds });
+    }
+  }, [selectedAccountIds, campaignId, campaignCreated]);
+
+  // Save excludedCreativeIds changes in real-time
+  useEffect(() => {
+    if (campaignId && campaignCreated) {
+      saveCampaignChanges({ excludedCreativeIds });
+    }
+  }, [excludedCreativeIds, campaignId, campaignCreated]);
+
+  // Save selectedCreativeIds changes in real-time (for manual mode)
+  useEffect(() => {
+    if (campaignId && campaignCreated && !autoMode) {
+      saveCampaignChanges({ selectedCreatives: selectedCreativeIds });
+    }
+  }, [selectedCreativeIds, campaignId, campaignCreated, autoMode]);
+
+  // Manual creative selection handler
+  const handleManualCreativeToggle = (creativeId: string | number) => {
+    setSelectedCreativeIds((prev) => {
+      if (prev.includes(creativeId)) {
+        return prev.filter((id) => id !== creativeId);
+      } else {
+        // Limit to 400 as mentioned in the UI
+        if (prev.length >= 400) {
+          return prev;
+        }
+        return [...prev, creativeId];
+      }
+    });
   };
 
   // CREATIVES DATA - Now fetched from Firebase (see useEffect above)
@@ -176,7 +327,7 @@ export default function ManageCreatives() {
 
   // SPECIFIC AFFILIATE MATCH - Filter by videoType
   const affiliateCreatives = creativesToDisplay.filter(
-    (creative) => creative.videoType === "Affiliate"
+    (creative) => creative.videoType === "Affiliate post"
   );
 
   // HELPER FUNCTION: Check if video path is valid
@@ -257,7 +408,7 @@ export default function ManageCreatives() {
       <Row className="mb-1 ">
         <Col>
           <div className="d-flex gap-3 mb-3 align-items-center">
-            <Link href="/campaigns/create" className="btn btn-secondary">
+            <Link href="/campaign/create" className="btn btn-secondary">
               ←
             </Link>
             <span className="title mb-0">Manage creatives</span>
@@ -314,80 +465,176 @@ export default function ManageCreatives() {
                   handleSelectTag={handleSelectTag}
                   handleRemoveTag={handleRemoveTag}
                   handleClearAll={handleClearAll}
+                  isManualMode={false}
                 />
               </>
             ) : (
-              ////////////////////////////////////////////////////////////////////////////// LGM
+              // Manual Mode
               <>
-                <Col sm={12} className="mb-4">
-                  <Card>
-                    <Card.Body>
-                      <Card.Title className="text-dark mb-3 d-flex">
-                        <p style={{ fontSize: "16px" }} className="fw-bold">
-                          Step 1:
-                        </p>
-                        <p
-                          style={{ fontSize: "16px" }}
-                          className="text-muted ms-2"
-                        >
-                          {" "}
-                          Select your creative mode
-                        </p>
-                      </Card.Title>
-                      <Card.Text className="m-0">
-                        <span className="text-dark">Mode: </span>
-                        <span className="text-muted"> Manual</span>
-                      </Card.Text>
-                      <Card.Text className="align-items-center d-flex">
-                        Select up to 400 authorized, affiliate, customized
-                        posts, or uploaded videos
-                        <Button
-                          className="ms-1 btn btn-link p-0 bg-transparent border-0 text-primary text-decoration-none"
-                          onClick={() => handleModeChange(true)}
-                        >
-                          <small> Switch to autoselect</small>
-                        </Button>
-                      </Card.Text>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col sm={12} className="mb-4">
-                  <Card>
-                    <Card.Body>
-                      <Card.Title className="text-dark mb-3 d-flex">
-                        <p style={{ fontSize: "16px" }} className="fw-bold">
-                          Step 2:
-                        </p>
-                        <p
-                          style={{ fontSize: "16px" }}
-                          className="text-muted ms-2"
-                        >
-                          {" "}
-                          Select your creative mode
-                        </p>
-                      </Card.Title>
-                      <Card.Text className="m-0">
-                        <span className="text-dark">Mode: </span>
-                        <span className="text-muted"> Manual</span>
-                      </Card.Text>
-                      <Card.Text className="align-items-center d-flex">
-                        Select up to 400 authorized, affiliate, customized
-                        posts, or uploaded videos
-                        <Button
-                          className="ms-1 btn btn-link p-0 bg-transparent border-0 text-primary text-decoration-none"
-                          onClick={() => handleModeChange(true)}
-                        >
-                          <small> Switch to autoselect</small>
-                        </Button>
-                      </Card.Text>
-                    </Card.Body>
-                  </Card>
-                </Col>
+                <Step1 onModeChange={handleModeChange} />
+                <Step2
+                  availableAccounts={availableAccounts}
+                  accountsLoading={accountsLoading}
+                  accountsError={accountsError}
+                  filteredAccounts={filteredAccounts}
+                  searchTerm={searchTerm}
+                  handleSearchChange={handleSearchChange}
+                  selectedAccountIds={selectedAccountIds}
+                  handleAccountToggle={handleAccountToggle}
+                  filteredCreatives={filteredCreatives}
+                  searchCreativeTerm={searchCreativeTerm}
+                  handleCreativeSearchChange={handleCreativeSearchChange}
+                  excludedCreativeIds={excludedCreativeIds}
+                  handleCreativeToggle={handleCreativeToggle}
+                  exclusionsToDisplay={exclusionsToDisplay}
+                  advancedOpen={advancedOpen}
+                  setAdvancedOpen={setAdvancedOpen}
+                />
+                <Step3 />
+                <Step4
+                  TikTokPostsTab={TikTokPostsTab}
+                  AffiliatesTab={AffiliatesTab}
+                  onTikTokPostsClick={handleTikTokPostsClick}
+                  onAffiliatesClick={handleAffiliatesClick}
+                  creativesLoading={creativesLoading}
+                  creativesError={creativesError}
+                  creativesWithVideos={creativesWithVideos}
+                  affiliateCreatives={affiliateCreatives}
+                  videoErrors={videoErrors}
+                  isValidVideoPath={isValidVideoPath}
+                  handleVideoError={handleVideoError}
+                  searchQuery={searchQuery}
+                  selectedTags={selectedTags}
+                  showMenu={showMenu}
+                  setShowMenu={setShowMenu}
+                  filterableCreatives={filterableCreatives}
+                  handleSearchQueryChange={handleSearchQueryChange}
+                  handleSelectTag={handleSelectTag}
+                  handleRemoveTag={handleRemoveTag}
+                  handleClearAll={handleClearAll}
+                  isManualMode={true}
+                  selectedCreativeIds={selectedCreativeIds}
+                  onCreativeToggle={handleManualCreativeToggle}
+                />
               </>
             )}
           </Row>
         </Col>
       </Row>
+
+      {/* Footer with Cancel and Save buttons - Only show in manual mode */}
+      {campaignId && !autoMode && (
+        <div
+          className="position-fixed bottom-0 start-0 end-0 bg-white border-top shadow-sm"
+          style={{ padding: "1rem", zIndex: 1000 }}
+        >
+          <Container>
+            <div className="d-flex justify-content-end gap-3">
+              <Button
+                variant="outline-secondary"
+                size="lg"
+                onClick={() => router.push("/campaign/create")}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={async () => {
+                  try {
+                    if (!campaignId || !currentUser) return;
+
+                    // Save selected creatives to campaign
+                    // In manual mode, use the manually selected creatives
+                    const creativesToSave = selectedCreativeIds;
+
+                    // Get campaign to access shop ID
+                    const campaign = await getCampaign(campaignId);
+                    if (!campaign) {
+                      alert("Campaign not found.");
+                      return;
+                    }
+
+                    // 1. Update campaign with creatives array
+                    await updateCampaign(campaignId, {
+                      selectedCreatives: creativesToSave,
+                      selectedAccounts: selectedAccountIds,
+                      excludedCreatives: excludedCreativeIds,
+                      creatives: creativesToSave, // Add creatives array
+                    });
+
+                    // 2. Update each creative to add campaign ID to campaigns array
+                    for (const creativeId of creativesToSave) {
+                      const creative = availableCreatives.find(
+                        (c) => c.id === creativeId
+                      );
+                      if (creative) {
+                        // Convert creative ID to string for updateCreative
+                        const creativeIdStr = String(creative.id);
+                        const currentCampaigns = creative.campaigns || [];
+                        if (!currentCampaigns.includes(campaignId)) {
+                          await updateCreative(creativeIdStr, {
+                            campaigns: [...currentCampaigns, campaignId],
+                          });
+                        }
+                      }
+                    }
+
+                    // 3. Get products for the campaign's shop and update them
+                    const shopProducts = await getProductsByShop(campaign.shop);
+                    for (const product of shopProducts) {
+                      if (!product.id) continue;
+
+                      const creativeImages = product.creativeImages || [];
+                      const creativeVideos = product.creativeVideos || [];
+                      let updated = false;
+
+                      // Add creative IDs to appropriate arrays based on creative type
+                      for (const creativeId of creativesToSave) {
+                        const creative = availableCreatives.find(
+                          (c) => c.id === creativeId
+                        );
+                        if (creative) {
+                          const creativeIdStr = String(creativeId);
+                          if (creative.type === "Image") {
+                            if (!creativeImages.includes(creativeIdStr)) {
+                              creativeImages.push(creativeIdStr);
+                              updated = true;
+                            }
+                          } else if (creative.type === "Video") {
+                            if (!creativeVideos.includes(creativeIdStr)) {
+                              creativeVideos.push(creativeIdStr);
+                              updated = true;
+                            }
+                          }
+                        }
+                      }
+
+                      // Update product if any creatives were added
+                      if (updated) {
+                        await updateProduct(product.id, {
+                          creativeImages,
+                          creativeVideos,
+                        });
+                      }
+                    }
+
+                    // Redirect to campaigns list or dashboard
+                    router.push("/");
+                  } catch (error) {
+                    console.error("Error saving campaign creatives:", error);
+                    alert(
+                      "Failed to save campaign creatives. Please try again."
+                    );
+                  }
+                }}
+              >
+                Save creatives
+              </Button>
+            </div>
+          </Container>
+        </div>
+      )}
     </Container>
   );
 }

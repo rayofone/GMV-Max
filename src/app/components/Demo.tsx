@@ -25,7 +25,7 @@ export default function Demo() {
               <span className="text-primary">Tutorial & Help</span>
               <div className="float-end ms-auto d-flex gap-2">
                 <Link
-                  href="/campaign/create"
+                  href="/campaign/create?createNew=true"
                   className="btn btn-primary btn-sm"
                 >
                   Create GMV Max ads

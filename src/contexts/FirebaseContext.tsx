@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import { collection, getDocs, query, where, or } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthContext";
@@ -8,20 +14,25 @@ import { useAuth } from "./AuthContext";
 // Type definitions
 export interface Creative {
   id: string | number;
-  type: string;
+  type: "Video" | "Image";
   preview: string;
   video: string;
   name: string;
   shop: string;
-  videoType?: string; // e.g., "Affiliate"
+  videoType?: string; // e.g., "Affiliate post", "TikTok post"
+  campaigns?: string[]; // Array of campaign IDs this creative is used in
 }
 
 export interface Account {
   id?: string;
+  parentAccount?: string;
   name: string;
-  type: string;
+  type: "Official Account" | "Marketing Account";
   status?: string; // e.g., "selected", "available", "unauthorized"
   shops?: string[]; // shop IDs
+  users?: string[]; // user IDs
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 // Context interface
@@ -31,7 +42,7 @@ interface FirebaseContextType {
   accountsLoading: boolean;
   accountsError: string | null;
   refetchAccounts: () => Promise<void>;
-  
+
   // Creatives
   creatives: Creative[];
   creativesLoading: boolean;
@@ -40,11 +51,13 @@ interface FirebaseContextType {
 }
 
 // Create context
-const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined);
+const FirebaseContext = createContext<FirebaseContextType | undefined>(
+  undefined
+);
 
 // Provider component
 export function FirebaseProvider({ children }: { children: ReactNode }) {
-  const { userData, currentUser } = useAuth();
+  const { userData, currentUser, isMasterAdmin } = useAuth();
   // Accounts state
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
@@ -61,29 +74,28 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
       setAccountsLoading(true);
       setAccountsError(null);
       const accountsCollection = collection(db, "accounts");
-      
-      // If user is logged in and has shops, filter accounts by those shops
-      if (currentUser && userData?.shops && userData.shops.length > 0) {
-        // Get accounts that have any of the user's shops
-        const accountsSnapshot = await getDocs(accountsCollection);
-        const allAccounts: Account[] = accountsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Account[];
-        
-        // Filter accounts that have shops matching user's shops
-        const filteredAccounts = allAccounts.filter((account) =>
-          account.shops?.some((shopId) => userData.shops?.includes(shopId))
-        );
-        setAccounts(filteredAccounts);
-      } else if (currentUser && userData?.role === "admin") {
-        // Admins see all accounts
+
+      // Master admin or regular admin sees all accounts
+      if (currentUser && (isMasterAdmin || userData?.role === "admin")) {
         const accountsSnapshot = await getDocs(accountsCollection);
         const accountsData: Account[] = accountsSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         })) as Account[];
         setAccounts(accountsData);
+      } else if (currentUser && userData?.shops && userData.shops.length > 0) {
+        // Get accounts that have any of the user's shops
+        const accountsSnapshot = await getDocs(accountsCollection);
+        const allAccounts: Account[] = accountsSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Account[];
+
+        // Filter accounts that have shops matching user's shops
+        const filteredAccounts = allAccounts.filter((account) =>
+          account.shops?.some((shopId) => userData.shops?.includes(shopId))
+        );
+        setAccounts(filteredAccounts);
       } else {
         // Not logged in or no shops - show empty
         setAccounts([]);
@@ -103,44 +115,45 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
       setCreativesLoading(true);
       setCreativesError(null);
       const creativesCollection = collection(db, "creatives");
-      
-      // If user is logged in and has shops, filter creatives by those shops
-      if (currentUser && userData?.shops && userData.shops.length > 0) {
-        const creativesSnapshot = await getDocs(creativesCollection);
-        const allCreatives: Creative[] = creativesSnapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            type: data.type || "",
-            preview: data.preview || "",
-            video: data.video || "",
-            name: data.name || "",
-            shop: data.shop || "",
-            videoType: data.videoType || "",
-          };
-        });
-        
-        // Filter creatives that belong to user's shops
-        const filteredCreatives = allCreatives.filter((creative) =>
-          userData.shops?.includes(creative.shop)
-        );
-        setCreatives(filteredCreatives);
-      } else if (currentUser && userData?.role === "admin") {
-        // Admins see all creatives
+
+      // Master admin or regular admin sees all creatives
+      if (currentUser && (isMasterAdmin || userData?.role === "admin")) {
         const creativesSnapshot = await getDocs(creativesCollection);
         const creativesData: Creative[] = creativesSnapshot.docs.map((doc) => {
           const data = doc.data();
           return {
             id: doc.id,
-            type: data.type || "",
+            type: (data.type || "Video") as "Video" | "Image",
             preview: data.preview || "",
             video: data.video || "",
             name: data.name || "",
             shop: data.shop || "",
-            videoType: data.videoType || "",
+            videoType: data.videoType || "TikTok post",
+            campaigns: data.campaigns || [],
           };
         });
         setCreatives(creativesData);
+      } else if (currentUser && userData?.shops && userData.shops.length > 0) {
+        const creativesSnapshot = await getDocs(creativesCollection);
+        const allCreatives: Creative[] = creativesSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            type: (data.type || "Video") as "Video" | "Image",
+            preview: data.preview || "",
+            video: data.video || "",
+            name: data.name || "",
+            shop: data.shop || "",
+            videoType: data.videoType || "TikTok post",
+            campaigns: data.campaigns || [],
+          };
+        });
+
+        // Filter creatives that belong to user's shops
+        const filteredCreatives = allCreatives.filter((creative) =>
+          userData.shops?.includes(creative.shop)
+        );
+        setCreatives(filteredCreatives);
       } else {
         // Not logged in or no shops - show empty
         setCreatives([]);
@@ -188,4 +201,3 @@ export function useFirebase() {
   }
   return context;
 }
-

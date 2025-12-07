@@ -214,6 +214,20 @@ export const getProductsByAccount = async (
   })) as Product[];
 };
 
+export const getProductsByShop = async (
+  shopId: string
+): Promise<Product[]> => {
+  const q = query(
+    collection(db, "products"),
+    where("shop", "==", shopId)
+  );
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...convertTimestamps(doc.data()),
+  })) as Product[];
+};
+
 export const createProduct = async (
   productData: Omit<Product, "id">
 ): Promise<string> => {

@@ -6,6 +6,7 @@ import SideNav from "./components/SideNav";
 import Header from "./components/Header";
 import FirebaseProviderWrapper from "./providers/FirebaseProvider";
 import AuthProviderWrapper from "./providers/AuthProvider";
+import ShopProviderWrapper from "./providers/ShopProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,15 +32,17 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AuthProviderWrapper>
-          <FirebaseProviderWrapper>
-            <Header />
-            <div style={{ display: 'flex', flex: 1 }}>
-              <SideNav />
-              <div style={{ marginLeft: '0', flex: 1, width: '100%' }} className="content-wrapper">
-                {children}
+          <ShopProviderWrapper>
+            <FirebaseProviderWrapper>
+              <Header />
+              <div style={{ display: 'flex', flex: 1 }}>
+                <SideNav />
+                <div style={{ marginLeft: '0', flex: 1, width: '100%' }} className="content-wrapper">
+                  {children}
+                </div>
               </div>
-            </div>
-          </FirebaseProviderWrapper>
+            </FirebaseProviderWrapper>
+          </ShopProviderWrapper>
         </AuthProviderWrapper>
       </body>
     </html>

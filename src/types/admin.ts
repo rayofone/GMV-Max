@@ -33,6 +33,7 @@ export interface Creative {
   videoType: "TikTok post" | "Authorized post" | "Affiliate post" | "Custom post" | "AIGC images";
   caption?: string;
   preview?: string;
+  campaigns?: string[]; // Array of campaign IDs this creative is used in
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -63,6 +64,7 @@ export interface Shop {
 export interface Campaign {
   id?: string;
   name: string;
+  type?: "products" | "LIVE"; // Campaign type: products or LIVE
   budget?: string;
   startDate?: string;
   endDate?: string;
@@ -71,6 +73,10 @@ export interface Campaign {
   shop: string; // shop ID
   account: string; // account ID
   userId: string; // user ID who created it
+  selectedCreatives?: (string | number)[]; // selected creative IDs
+  selectedAccounts?: string[]; // selected account IDs
+  excludedCreatives?: (string | number)[]; // excluded creative IDs
+  creatives?: (string | number)[]; // Array of creative IDs used in this campaign
   createdAt?: Date;
   updatedAt?: Date;
 }

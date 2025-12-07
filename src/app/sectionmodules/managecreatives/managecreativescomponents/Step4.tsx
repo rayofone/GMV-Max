@@ -37,6 +37,10 @@ interface Step4Props {
   handleSelectTag: (creative: Creative) => void;
   handleRemoveTag: (id: string | number) => void;
   handleClearAll: () => void;
+  // Manual selection props
+  isManualMode?: boolean;
+  selectedCreativeIds?: (string | number)[];
+  onCreativeToggle?: (creativeId: string | number) => void;
 }
 
 export default function Step4({
@@ -60,6 +64,9 @@ export default function Step4({
   handleSelectTag,
   handleRemoveTag,
   handleClearAll,
+  isManualMode = false,
+  selectedCreativeIds = [],
+  onCreativeToggle,
 }: Step4Props) {
   const affiliateInputRef = useRef<HTMLInputElement>(null);
   const allCreativesInputRef = useRef<HTMLInputElement>(null);
@@ -253,7 +260,7 @@ export default function Step4({
                       Affiliates (
                       {
                         filterableCreatives.filter(
-                          (c) => c.type === "Affiliate"
+                          (c) => c.videoType === "Affiliate post"
                         ).length
                       }{" "}
                       available)
@@ -288,7 +295,7 @@ export default function Step4({
                                 // Try to find matching creative in affiliates
                                 const affiliateCreatives =
                                   filterableCreatives.filter(
-                                    (c) => c.type === "Affiliate"
+                                    (c) => c.videoType === "Affiliate post"
                                   );
                                 const matchingCreative =
                                   affiliateCreatives.find(
@@ -309,7 +316,7 @@ export default function Step4({
                           />
 
                           {filterableCreatives
-                            .filter((c) => c.type === "Affiliate")
+                            .filter((c) => c.videoType === "Affiliate post")
                             .map((creative) => (
                               <div
                                 className="d-flex align-items-center mb-3"
@@ -525,17 +532,45 @@ export default function Step4({
                     {creativesWithVideos.map((creative) => {
                       const hasError = videoErrors.has(creative.id);
                       const isValid = isValidVideoPath(creative.video);
+                      const isSelected =
+                        isManualMode &&
+                        selectedCreativeIds.includes(creative.id);
 
                       return (
                         <Col
                           sm={2}
-                          className="mb-5"
+                          className="mb-5 position-relative"
                           style={{
                             height: "350px",
                             width: "200px",
                           }}
                           key={creative.id}
                         >
+                          {isManualMode && onCreativeToggle && (
+                            <div
+                              className="position-absolute"
+                              style={{
+                                top: "10px",
+                                left: "10px",
+                                zIndex: 10,
+                                backgroundColor: "white",
+                                borderRadius: "4px",
+                                padding: "4px",
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                className="form-check-input"
+                                checked={isSelected}
+                                onChange={() => onCreativeToggle(creative.id)}
+                                style={{
+                                  width: "20px",
+                                  height: "20px",
+                                  cursor: "pointer",
+                                }}
+                              />
+                            </div>
+                          )}
                           {isValid && !hasError && creative.video ? (
                             <video
                               src={creative.video}
@@ -640,17 +675,45 @@ export default function Step4({
                     {affiliateCreatives.map((creative) => {
                       const hasError = videoErrors.has(creative.id);
                       const isValid = isValidVideoPath(creative.video);
+                      const isSelected =
+                        isManualMode &&
+                        selectedCreativeIds.includes(creative.id);
 
                       return (
                         <Col
                           sm={2}
-                          className="mb-5"
+                          className="mb-5 position-relative"
                           style={{
                             height: "350px",
                             width: "200px",
                           }}
                           key={creative.id}
                         >
+                          {isManualMode && onCreativeToggle && (
+                            <div
+                              className="position-absolute"
+                              style={{
+                                top: "10px",
+                                left: "10px",
+                                zIndex: 10,
+                                backgroundColor: "white",
+                                borderRadius: "4px",
+                                padding: "4px",
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                className="form-check-input"
+                                checked={isSelected}
+                                onChange={() => onCreativeToggle(creative.id)}
+                                style={{
+                                  width: "20px",
+                                  height: "20px",
+                                  cursor: "pointer",
+                                }}
+                              />
+                            </div>
+                          )}
                           {isValid && !hasError && creative.video ? (
                             <video
                               src={creative.video}

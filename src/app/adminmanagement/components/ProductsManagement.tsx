@@ -25,7 +25,7 @@ import type { Shop } from "@/types/admin";
 import type { Creative } from "@/types/admin";
 
 export default function ProductsManagement() {
-  const { userData } = useAuth();
+  const { userData, isMasterAdmin } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);
@@ -60,10 +60,41 @@ export default function ProductsManagement() {
           getShops(),
           getCreatives(),
         ]);
-      setProducts(productsData);
-      setAccounts(accountsData);
-      setShops(shopsData);
-      setCreatives(creativesData);
+        setProducts(productsData);
+      
+      // Master admin or regular admin sees all data
+      if (isMasterAdmin || userData?.role === "admin") {
+        setAccounts(accountsData);
+        setShops(shopsData);
+        setCreatives(creativesData);
+      } else if (userData?.shops && userData.shops.length > 0) {
+        // Filter accounts that have user's shops
+        const filteredAccounts = accountsData.filter((account) =>
+          account.shops?.some((shopId) => userData.shops?.includes(shopId))
+        );
+        setAccounts(filteredAccounts);
+        
+        // Filter shops to only user's shops
+        const filteredShops = shopsData.filter((shop) =>
+          userData.shops?.includes(shop.id || "")
+        );
+        setShops(filteredShops);
+        
+        // Filter creatives that belong to user's shops
+        const filteredCreatives = creativesData.filter((creative) =>
+          userData.shops?.includes(creative.shop)
+        );
+        setCreatives(filteredCreatives);
+        
+        // Auto-select first shop if only one
+        if (filteredShops.length === 1 && !formData.shop) {
+          setFormData((prev) => ({ ...prev, shop: filteredShops[0].id || "" }));
+        }
+      } else {
+        setAccounts([]);
+        setShops([]);
+        setCreatives([]);
+      }
     } catch (err) {
       setError("Failed to load data");
       console.error(err);

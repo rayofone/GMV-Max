@@ -24,7 +24,7 @@ import type { Account } from "@/types/admin";
 import type { Shop } from "@/types/admin";
 
 export default function CreativesManagement() {
-  const { userData } = useAuth();
+  const { userData, isMasterAdmin } = useAuth();
   const [creatives, setCreatives] = useState<Creative[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);
@@ -63,8 +63,8 @@ export default function CreativesManagement() {
       ]);
       setCreatives(creativesData);
       
-      // Filter accounts and shops by user's shops (unless admin)
-      if (userData?.role === "admin") {
+      // Master admin or regular admin sees all data
+      if (isMasterAdmin || userData?.role === "admin") {
         setAccounts(accountsData);
         setShops(shopsData);
       } else if (userData?.shops && userData.shops.length > 0) {
