@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   Card,
   Row,
@@ -14,6 +14,7 @@ import {
 } from "react-bootstrap";
 import { CircleUser, CircleQuestionMark, X, ChevronRight } from "lucide-react";
 import type { Creative } from "@/contexts/FirebaseContext";
+import { getCreatives } from "@/lib/firebaseAdmin";
 
 interface Step4Props {
   TikTokPostsTab: boolean;
@@ -72,6 +73,46 @@ export default function Step4({
 }: Step4Props) {
   const affiliateInputRef = useRef<HTMLInputElement>(null);
   const allCreativesInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch all creatives directly from Firebase
+  const [allCreativesFromFirebase, setAllCreativesFromFirebase] = useState<
+    Creative[]
+  >([]);
+  const [creativesLoadingLocal, setCreativesLoadingLocal] = useState(true);
+
+  useEffect(() => {
+    const fetchAllCreatives = async () => {
+      try {
+        setCreativesLoadingLocal(true);
+        const creatives = await getCreatives();
+        setAllCreativesFromFirebase(creatives as Creative[]);
+      } catch (error) {
+        console.error("Error fetching creatives in Step4:", error);
+      } finally {
+        setCreativesLoadingLocal(false);
+      }
+    };
+
+    fetchAllCreatives();
+  }, []);
+
+  // Filter affiliate creatives directly from Firebase data
+  const affiliateCreativesFromFirebase = allCreativesFromFirebase.filter(
+    (creative) => {
+      const videoType = creative.videoType;
+      return (
+        videoType &&
+        typeof videoType === "string" &&
+        videoType !== "string" &&
+        (videoType === "Affiliate post" ||
+          videoType === "Affiliates" ||
+          videoType === "Affiliate")
+      );
+    }
+  );
+
+  // Use affiliate creatives from Firebase instead of prop
+  const displayAffiliateCreatives = affiliateCreativesFromFirebase;
 
   return (
     <Col sm={12} className="mb-4">
@@ -261,12 +302,7 @@ export default function Step4({
                     className="btn-sm border-0 bg-transparent text-dark d-flex align-items-center p-0 w-100"
                   >
                     <span className="me-auto" style={{ fontSize: "16px" }}>
-                      Affiliates (
-                      {
-                        filterableCreatives.filter(
-                          (c) => c.videoType === "Affiliate post"
-                        ).length
-                      }{" "}
+                      Affiliates ({affiliateCreativesFromFirebase.length}{" "}
                       available)
                     </span>
                     <span className="mb-1">
@@ -298,9 +334,7 @@ export default function Step4({
                                 e.preventDefault();
                                 // Try to find matching creative in affiliates
                                 const affiliateCreatives =
-                                  filterableCreatives.filter(
-                                    (c) => c.videoType === "Affiliate post"
-                                  );
+                                  affiliateCreativesFromFirebase;
                                 const matchingCreative =
                                   affiliateCreatives.find(
                                     (c) =>
@@ -319,38 +353,36 @@ export default function Step4({
                             className="form-control mb-3"
                           />
 
-                          {filterableCreatives
-                            .filter((c) => c.videoType === "Affiliate post")
-                            .map((creative) => (
-                              <div
-                                className="d-flex align-items-center mb-3"
-                                key={creative.id}
+                          {affiliateCreativesFromFirebase.map((creative) => (
+                            <div
+                              className="d-flex align-items-center mb-3"
+                              key={creative.id}
+                            >
+                              <input
+                                className="form-check-input me-2"
+                                type="checkbox"
+                                id={`filter-creative-${creative.id}`}
+                                checked={selectedTags.some(
+                                  (tag) => tag.id === creative.id
+                                )}
+                                onChange={() => handleSelectTag(creative)}
+                              />
+                              <label
+                                className="form-check-label d-flex"
+                                htmlFor={`filter-creative-${creative.id}`}
+                                style={{ fontSize: "14px" }}
                               >
-                                <input
-                                  className="form-check-input me-2"
-                                  type="checkbox"
-                                  id={`filter-creative-${creative.id}`}
-                                  checked={selectedTags.some(
-                                    (tag) => tag.id === creative.id
-                                  )}
-                                  onChange={() => handleSelectTag(creative)}
-                                />
-                                <label
-                                  className="form-check-label d-flex"
-                                  htmlFor={`filter-creative-${creative.id}`}
-                                  style={{ fontSize: "14px" }}
-                                >
-                                  <span className="col me-2">
-                                    <CircleUser strokeWidth={1.5} size={42} />
-                                  </span>
-                                  <span className="w-100">
-                                    {creative.name}
-                                    <br />
-                                    {creative.shop}
-                                  </span>
-                                </label>
-                              </div>
-                            ))}
+                                <span className="col me-2">
+                                  <CircleUser strokeWidth={1.5} size={42} />
+                                </span>
+                                <span className="w-100">
+                                  {creative.name}
+                                  <br />
+                                  {creative.shop}
+                                </span>
+                              </label>
+                            </div>
+                          ))}
                         </Card.Body>
                         <Card.Footer className="bg-transparent p-0 pt-3 d-flex justify-content-end">
                           <caption className="text-muted me-auto pt-2">
@@ -652,7 +684,7 @@ export default function Step4({
               </>
             ) : (
               <>
-                {creativesLoading ? (
+                {creativesLoading || creativesLoadingLocal ? (
                   <Col size={12}>
                     <Alert variant="info" className="text-center">
                       <CircleQuestionMark
@@ -674,9 +706,9 @@ export default function Step4({
                       <p className="mb-0">{creativesError}</p>
                     </Alert>
                   </Col>
-                ) : affiliateCreatives.length > 0 ? (
+                ) : displayAffiliateCreatives.length > 0 ? (
                   <Col size={12} className="d-flex flex-wrap gap-3">
-                    {affiliateCreatives.map((creative) => {
+                    {displayAffiliateCreatives.map((creative) => {
                       const hasError = videoErrors.has(creative.id);
                       const isValid = isValidVideoPath(creative.video);
                       const isSelected =
@@ -799,14 +831,20 @@ export default function Step4({
                       Selected Creatives ({selectedCreativeIds.length})
                     </p>
                   </Card.Title>
-                  <Row className="gap-2">
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      overflowX: "auto",
+                      overflowY: "hidden",
+                      gap: "12px",
+                      paddingBottom: "8px",
+                    }}
+                    className="selected-creatives-scroll"
+                  >
                     {(() => {
-                      // Get all selected creatives from both tabs
-                      const allCreatives = [
-                        ...creativesWithVideos,
-                        ...affiliateCreatives,
-                      ];
-                      const selectedCreatives = allCreatives.filter(
+                      // Get all selected creatives from Firebase (includes both TikTok posts and Affiliates)
+                      const selectedCreatives = allCreativesFromFirebase.filter(
                         (creative) => selectedCreativeIds.includes(creative.id)
                       );
 
@@ -815,10 +853,9 @@ export default function Step4({
                         const isValid = isValidVideoPath(creative.video);
 
                         return (
-                          <Col
-                            sm={1}
+                          <div
                             key={creative.id}
-                            className="position-relative"
+                            className="position-relative flex-shrink-0"
                             style={{
                               height: "120px",
                               width: "80px",
@@ -868,11 +905,11 @@ export default function Step4({
                             >
                               {creative.name}
                             </p>
-                          </Col>
+                          </div>
                         );
                       });
                     })()}
-                  </Row>
+                  </div>
                 </div>
               </>
             )}

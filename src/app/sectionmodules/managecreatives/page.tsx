@@ -35,6 +35,13 @@ export default function ManageCreatives() {
       const urlCampaignId = params.get("campaignId");
       if (urlCampaignId) {
         setCampaignId(urlCampaignId);
+        // Load campaign data to get autoMode
+        getCampaign(urlCampaignId).then((campaign) => {
+          if (campaign) {
+            // Set autoMode from campaign, default to true if not set
+            setAutoMode(campaign.autoMode !== false);
+          }
+        });
       }
 
       const urlPgm = params.get("pgm");
@@ -132,6 +139,7 @@ export default function ManageCreatives() {
     selectedAccounts?: string[];
     excludedCreativeIds?: (string | number)[];
     selectedCreatives?: (string | number)[];
+    autoMode?: boolean;
   }) => {
     if (!campaignId) return;
 
@@ -163,6 +171,13 @@ export default function ManageCreatives() {
       saveCampaignChanges({ selectedCreatives: selectedCreativeIds });
     }
   }, [selectedCreativeIds, campaignId, autoMode]);
+
+  // Save autoMode changes in real-time
+  useEffect(() => {
+    if (campaignId) {
+      saveCampaignChanges({ autoMode });
+    }
+  }, [autoMode, campaignId]);
 
   // Manual creative selection handler
   const handleManualCreativeToggle = (creativeId: string | number) => {
@@ -272,9 +287,27 @@ export default function ManageCreatives() {
   );
 
   // SPECIFIC AFFILIATE MATCH - Filter by videoType
-  const affiliateCreatives = creativesToDisplay.filter(
-    (creative) => creative.videoType === "Affiliate post"
-  );
+  // Filter affiliate creatives from creativesToDisplay
+  // Handle both "Affiliate post" and "Affiliates" for compatibility
+  // Filter out invalid videoType values like "string"
+  let affiliateCreatives = creativesToDisplay.filter((creative) => {
+    const videoType = creative.videoType;
+    // Check for valid affiliate video types, excluding invalid values like "string"
+    return (
+      videoType &&
+      typeof videoType === "string" &&
+      videoType !== "string" &&
+      (videoType === "Affiliate post" || videoType === "Affiliates")
+    );
+  });
+
+  // Apply inclusion filter: if tags are selected, only show those affiliate creatives
+  if (selectedTags.length > 0) {
+    const selectedTagIds = selectedTags.map((tag) => tag.id);
+    affiliateCreatives = affiliateCreatives.filter((creative) =>
+      selectedTagIds.includes(creative.id)
+    );
+  }
 
   // HELPER FUNCTION: Check if video path is valid
   const isValidVideoPath = (videoPath: string): boolean => {
@@ -334,7 +367,7 @@ export default function ManageCreatives() {
       availableCreatives.forEach((creative) => {
         console.log(`Creative ${creative.id} (${creative.name}):`, {
           video: creative.video,
-          videoType: typeof creative.video,
+          videoType: creative.videoType,
           isValid: isValidVideoPath(creative.video),
           isExcluded: excludedCreativeIds.includes(creative.id),
         });

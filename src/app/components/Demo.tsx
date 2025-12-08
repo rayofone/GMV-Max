@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Container,
   Row,
@@ -9,11 +9,82 @@ import {
   Card,
   Badge,
   Alert,
+  Table,
+  Form,
+  Dropdown,
 } from "react-bootstrap";
 import Link from "next/link";
+import { MoreVertical } from "lucide-react";
+import { getCampaigns, updateCampaign } from "@/lib/firebaseAdmin";
+import { useAuth } from "@/contexts/AuthContext";
+import type { Campaign } from "@/types/admin";
 import ContentSideNav from "./ContentSideNav";
 
 export default function Demo() {
+  const { currentUser } = useAuth();
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Always try to load campaigns, even if user is not logged in
+    // The function will handle errors gracefully
+    loadCampaigns();
+  }, []);
+
+  const loadCampaigns = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const campaignsData = await getCampaigns();
+      setCampaigns(Array.isArray(campaignsData) ? campaignsData : []);
+    } catch (err) {
+      console.error("Error loading campaigns:", err);
+      setError("Failed to load campaigns. Please refresh the page.");
+      setCampaigns([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleEnabled = async (campaign: Campaign) => {
+    if (!campaign.id) return;
+    try {
+      await updateCampaign(campaign.id, {
+        enabled: !campaign.enabled,
+      });
+      loadCampaigns();
+    } catch (err) {
+      console.error("Error updating campaign:", err);
+    }
+  };
+
+  const formatCurrency = (value?: string) => {
+    try {
+      if (!value || typeof value !== "string" || value.trim() === "") return "";
+      // If already formatted, return as is
+      if (value.startsWith("$")) return value;
+      // Try to parse as number and format
+      const num = parseFloat(value);
+      if (isNaN(num)) return "";
+      return `$${num.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
+    } catch {
+      return "";
+    }
+  };
+
+  const formatDate = (date?: string) => {
+    try {
+      if (!date || typeof date !== "string" || date.trim() === "") return "";
+      return new Date(date).toLocaleDateString();
+    } catch {
+      return "";
+    }
+  };
+
   return (
     <>
       {/* HEADER */}
@@ -43,18 +114,19 @@ export default function Demo() {
         </Row>
       </Container>
 
+      {/* MAIN CONTENT */}
       <div
         style={{ display: "flex", flex: 1, minHeight: "calc(100vh - 56px)" }}
       >
         <Container className="py-3" style={{ flex: 1, overflowY: "auto" }}>
           <Row>
-            {/* Left column: content-side nav (auto width) */}
+            {/* LEFT COLUMN: SIDENAV */}
             <Col xs="auto" className="pe-0">
               <div
                 style={{
                   position: "sticky",
-                  top: 56,
-                  height: "calc(100vh - 56px)",
+                  top: 0,
+                  height: "100vh",
                   alignSelf: "flex-start",
                   marginRight: "20px",
                 }}
@@ -63,7 +135,7 @@ export default function Demo() {
               </div>
             </Col>
 
-            {/* Right column: main content canvas */}
+            {/* RIGHT COLUMN: MAIN CONTENT CANVAS */}
             <Col>
               {/* GROWTH CENTER */}
               <Row className="mb-4">
@@ -101,7 +173,7 @@ export default function Demo() {
                         <p>
                           Recommended products are items from your catalog that
                           shoppers on TikTok may be interested in purchasing,
-                          based on TikTok's top-selling product categories,
+                          based on TikTok&apos;s top-selling product categories,
                           trending products and most searched keywords.
                         </p>
                         <div className="row">
@@ -117,6 +189,7 @@ export default function Demo() {
                 </Col>
               </Row>
 
+              {/* SHOPPING ADS DEMO ACCOUNT */}
               <Row className="mb-4">
                 <Col>
                   <Card>
@@ -157,7 +230,8 @@ export default function Demo() {
                 </Col>
               </Row>
 
-              <Row className="g-4">
+              {/* GMV MAX ADS DEMO ACCOUNT */}
+              <Row className="g-4 mb-4">
                 <Col md={4}>
                   <Card>
                     <Card.Body>
@@ -171,7 +245,14 @@ export default function Demo() {
                   <Card>
                     <Card.Body>
                       <Card.Title>Active Campaigns</Card.Title>
-                      <p className="h4 mb-0 text-primary">0</p>
+                      <p className="h4 mb-0 text-primary">
+                        {
+                          campaigns.filter(
+                            (c) =>
+                              c && c.enabled === true && c.status === "Active"
+                          ).length
+                        }
+                      </p>
                       <small className="text-muted">Campaigns running</small>
                     </Card.Body>
                   </Card>
@@ -184,6 +265,77 @@ export default function Demo() {
                       <small className="text-muted">Allocated budget</small>
                     </Card.Body>
                   </Card>
+                </Col>
+              </Row>
+
+              {/* CAMPAIGNS TABLE */}
+              <Row>
+                <Col>
+                  <div>
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                      <h2>Campaigns</h2>
+                    </div>
+
+                    {error && <Alert variant="danger">{error}</Alert>}
+
+                    <Table hover>
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Type</th>
+                          <th>Shop</th>
+                          <th>Account</th>
+                          <th>User</th>
+                          <th>Budget</th>
+                          <th>Dates</th>
+                          <th>Creatives</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Campaign Placeholder 1</td>
+                          <td>
+                            <Badge bg="primary">products</Badge>
+                          </td>
+                          <td>Shop Placeholder</td>
+                          <td>Account Placeholder</td>
+                          <td>User Placeholder</td>
+                          <td>$1000</td>
+                          <td>2024-01-01 - 2024-12-31</td>
+                          <td>5</td>
+                          <td>
+                            <Button variant="link" size="sm">
+                              Edit
+                            </Button>
+                            <Button variant="link" size="sm">
+                              Delete
+                            </Button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>Campaign Placeholder 2</td>
+                          <td>
+                            <Badge bg="info">LIVE</Badge>
+                          </td>
+                          <td>Shop Placeholder</td>
+                          <td>Account Placeholder</td>
+                          <td>User Placeholder</td>
+                          <td>$2000</td>
+                          <td>2024-02-01 - 2024-12-31</td>
+                          <td>10</td>
+                          <td>
+                            <Button variant="link" size="sm">
+                              Edit
+                            </Button>
+                            <Button variant="link" size="sm">
+                              Delete
+                            </Button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </Table>
+                  </div>
                 </Col>
               </Row>
             </Col>

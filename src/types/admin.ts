@@ -77,10 +77,27 @@ export interface Campaign {
   shop: string; // shop ID
   account: string; // account ID
   userId: string; // user ID who created it
+  autoMode?: boolean; // Auto-select mode (true = auto, false = manual)
   selectedCreatives?: (string | number)[]; // selected creative IDs
   selectedAccounts?: string[]; // selected account IDs
   excludedCreatives?: (string | number)[]; // excluded creative IDs
   creatives?: (string | number)[]; // Array of creative IDs used in this campaign
+  // New fields for dashboard table
+  enabled?: boolean; // On/Off switch
+  status?: "Active" | "Inactive"; // Status
+  recommendations?: string; // Recommendations text
+  currentOptimizations?: string; // Current optimizations text
+  scheduleTime?: string; // Schedule time (date)
+  currentBudget?: string; // Current budget (currency)
+  creativeBoostBudget?: string; // Creative boost budget (currency)
+  testingPhase?: boolean; // Testing phase (yes/no)
+  targetROI?: string; // Target ROI text
+  cost?: string; // Cost (currency)
+  netCost?: string; // Net Cost (currency)
+  ordersSKU?: string; // Orders (SKU) text
+  costPerOrder?: string; // Cost per order text
+  grossRevenue?: string; // Gross revenue (currency)
+  roi?: string; // ROI text
   createdAt?: Date;
   updatedAt?: Date;
 }

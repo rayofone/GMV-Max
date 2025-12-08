@@ -134,7 +134,24 @@ export default function CampaignsManagement() {
           setError("Please select a user");
           return;
         }
-        await createCampaign(formData);
+        await createCampaign({
+          ...formData,
+          enabled: false,
+          status: "Inactive",
+          recommendations: "",
+          currentOptimizations: "",
+          scheduleTime: formData.startDate || "",
+          currentBudget: formData.budget || "",
+          creativeBoostBudget: "",
+          testingPhase: false,
+          targetROI: "",
+          cost: "",
+          netCost: "",
+          ordersSKU: "",
+          costPerOrder: "",
+          grossRevenue: "",
+          roi: "",
+        });
       }
       handleCloseModal();
       loadData();

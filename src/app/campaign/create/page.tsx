@@ -21,10 +21,15 @@ import {
   deleteCampaign,
   getCampaign,
   updateCampaign,
+  getCreatives,
 } from "@/lib/firebaseAdmin";
 import type { Shop } from "@/types/admin";
 
 export default function CreateCampaign() {
+  // Default shop and account IDs
+  const DEFAULT_SHOP_ID = "zg2kDQvIKFt7SUi5XXvV";
+  const DEFAULT_ACCOUNT_ID = "qMSH488FCkgpsrBOWEdL";
+
   const router = useRouter();
   const { currentUser, userData } = useAuth();
   const { accounts } = useFirebase();
@@ -59,8 +64,8 @@ export default function CreateCampaign() {
           endDate: campaign.endDate || "",
           targetAudience: campaign.targetAudience || "",
           description: campaign.description || "",
-          shop: campaign.shop || "",
-          account: campaign.account || "",
+          shop: campaign.shop || DEFAULT_SHOP_ID,
+          account: campaign.account || DEFAULT_ACCOUNT_ID,
         });
         if (campaign.type) {
           setPgm(campaign.type === "products");
@@ -125,30 +130,40 @@ export default function CreateCampaign() {
             return;
           }
 
-          const shopAccounts = accounts.filter((acc) =>
-            acc.shops?.includes(selectedShop.id || "")
-          );
-          const firstAccount = shopAccounts[0];
-
-          if (!firstAccount || !firstAccount.id) {
-            setError("No account found for the selected shop");
-            return;
-          }
+          // Use default shop and account
+          const defaultShopId = "zg2kDQvIKFt7SUi5XXvV";
+          const defaultAccountId = "qMSH488FCkgpsrBOWEdL";
 
           // Create campaign immediately
           const newCampaignId = await createCampaign({
             name: `GMV Max Campaign - ${new Date().toLocaleDateString()}`,
             type: pgm ? "products" : "LIVE",
-            shop: selectedShop.id || "",
-            account: firstAccount.id,
+            shop: defaultShopId,
+            account: defaultAccountId,
             userId: currentUser.uid,
+            autoMode: true, // Default to auto mode
+            enabled: false,
+            status: "Inactive",
+            recommendations: "",
+            currentOptimizations: "",
+            scheduleTime: "",
+            currentBudget: "",
+            creativeBoostBudget: "",
+            testingPhase: false,
+            targetROI: "",
+            cost: "",
+            netCost: "",
+            ordersSKU: "",
+            costPerOrder: "",
+            grossRevenue: "",
+            roi: "",
           });
 
           setCampaignId(newCampaignId);
           setFormData((prev) => ({
             ...prev,
-            shop: selectedShop.id || "",
-            account: firstAccount.id || "",
+            shop: defaultShopId,
+            account: defaultAccountId,
           }));
         } catch (err) {
           console.error("Error creating campaign on load:", err);
@@ -198,6 +213,7 @@ export default function CreateCampaign() {
               shop: selectedShop.id || "",
               account: firstAccount.id || "",
               userId: currentUser.uid,
+              autoMode: true, // Default to auto mode
             });
             setCampaignId(newCampaignId);
             if (!formData.shop) {
@@ -267,18 +283,44 @@ export default function CreateCampaign() {
 
       if (campaignId) {
         // Update existing campaign with all fields
-        await updateCampaign(campaignId, {
+        // Use default shop and account if not set
+        const defaultShopId = "zg2kDQvIKFt7SUi5XXvV";
+        const defaultAccountId = "qMSH488FCkgpsrBOWEdL";
+
+        // Get the campaign to check if it's in autoselect mode
+        const campaign = await getCampaign(campaignId);
+        const updateData: any = {
           name: formData.campaignName,
           budget: formData.budget,
           startDate: formData.startDate,
           endDate: formData.endDate,
           targetAudience: formData.targetAudience,
           description: formData.description,
-          shop: formData.shop,
-          account: formData.account,
+          shop: formData.shop || defaultShopId,
+          account: formData.account || defaultAccountId,
           type: pgm ? "products" : "LIVE",
-        });
+          scheduleTime: formData.startDate || "",
+          currentBudget: formData.budget || "",
+        };
+
+        // If in autoselect mode (or autoMode not explicitly set to false), add all creatives from Firebase
+        // Default to autoMode = true if not set
+        const isAutoMode = campaign?.autoMode !== false;
+        if (isAutoMode) {
+          const allCreatives = await getCreatives();
+          const allCreativeIds = allCreatives.map((c) => c.id);
+          updateData.creatives = allCreativeIds;
+          updateData.selectedCreatives = allCreativeIds;
+          // Ensure autoMode is set to true
+          updateData.autoMode = true;
+        }
+
+        await updateCampaign(campaignId, updateData);
       } else {
+        // Use default shop and account if not set
+        const defaultShopId = "zg2kDQvIKFt7SUi5XXvV";
+        const defaultAccountId = "qMSH488FCkgpsrBOWEdL";
+
         // Create new campaign
         const newCampaignId = await createCampaign({
           name: formData.campaignName,
@@ -287,10 +329,26 @@ export default function CreateCampaign() {
           endDate: formData.endDate,
           targetAudience: formData.targetAudience,
           description: formData.description,
-          shop: formData.shop,
-          account: formData.account,
+          shop: formData.shop || defaultShopId,
+          account: formData.account || defaultAccountId,
           userId: currentUser.uid,
           type: pgm ? "products" : "LIVE",
+          autoMode: true, // Default to auto mode
+          enabled: false,
+          status: "Inactive",
+          recommendations: "",
+          currentOptimizations: "",
+          scheduleTime: formData.startDate || "",
+          currentBudget: formData.budget || "",
+          creativeBoostBudget: "",
+          testingPhase: false,
+          targetROI: "",
+          cost: "",
+          netCost: "",
+          ordersSKU: "",
+          costPerOrder: "",
+          grossRevenue: "",
+          roi: "",
         });
         setCampaignId(newCampaignId);
       }
@@ -973,10 +1031,18 @@ export default function CreateCampaign() {
 
                 try {
                   setSubmitted(true);
-                  let finalCampaignId = campaignId;
+
+                  // Check URL for campaignId in case state is not set
+                  const params = new URLSearchParams(window.location.search);
+                  const urlCampaignId = params.get("campaignId");
+                  let finalCampaignId = campaignId || urlCampaignId;
+
+                  // Use default shop and account
+                  const defaultShopId = "zg2kDQvIKFt7SUi5XXvV";
+                  const defaultAccountId = "qMSH488FCkgpsrBOWEdL";
 
                   // If campaign doesn't exist, create it; otherwise update it
-                  if (!campaignId) {
+                  if (!finalCampaignId) {
                     finalCampaignId = await createCampaign({
                       name: formData.campaignName,
                       type: pgm ? "products" : "LIVE",
@@ -985,9 +1051,25 @@ export default function CreateCampaign() {
                       endDate: formData.endDate,
                       targetAudience: formData.targetAudience,
                       description: formData.description,
-                      shop: formData.shop,
-                      account: formData.account,
+                      shop: formData.shop || defaultShopId,
+                      account: formData.account || defaultAccountId,
                       userId: currentUser.uid,
+                      autoMode: true, // Default to auto mode
+                      enabled: false,
+                      status: "Inactive",
+                      recommendations: "",
+                      currentOptimizations: "",
+                      scheduleTime: formData.startDate || "",
+                      currentBudget: formData.budget || "",
+                      creativeBoostBudget: "",
+                      testingPhase: false,
+                      targetROI: "",
+                      cost: "",
+                      netCost: "",
+                      ordersSKU: "",
+                      costPerOrder: "",
+                      grossRevenue: "",
+                      roi: "",
                     });
                     setCampaignId(finalCampaignId);
                   } else {
@@ -995,7 +1077,16 @@ export default function CreateCampaign() {
                     const { updateCampaign } = await import(
                       "@/lib/firebaseAdmin"
                     );
-                    await updateCampaign(campaignId, {
+
+                    // Get the campaign to check if it's in autoselect mode
+                    const campaign = await getCampaign(finalCampaignId);
+                    if (!campaign) {
+                      setError("Campaign not found. Please try again.");
+                      setSubmitted(false);
+                      return;
+                    }
+
+                    const updateData: any = {
                       name: formData.campaignName,
                       type: pgm ? "products" : "LIVE",
                       budget: formData.budget,
@@ -1003,14 +1094,34 @@ export default function CreateCampaign() {
                       endDate: formData.endDate,
                       targetAudience: formData.targetAudience,
                       description: formData.description,
-                      shop: formData.shop,
-                      account: formData.account,
-                    });
-                    finalCampaignId = campaignId;
+                      shop: formData.shop || defaultShopId,
+                      account: formData.account || defaultAccountId,
+                      scheduleTime: formData.startDate || "",
+                      currentBudget: formData.budget || "",
+                    };
+
+                    // If in autoselect mode (or autoMode not explicitly set to false), add all creatives from Firebase
+                    // Default to autoMode = true if not set
+                    const isAutoMode = campaign.autoMode !== false;
+                    if (isAutoMode) {
+                      const allCreatives = await getCreatives();
+                      const allCreativeIds = allCreatives.map((c) => c.id);
+                      updateData.creatives = allCreativeIds;
+                      updateData.selectedCreatives = allCreativeIds;
+                      // Ensure autoMode is set to true
+                      updateData.autoMode = true;
+                    }
+
+                    await updateCampaign(finalCampaignId, updateData);
+
+                    // Ensure campaignId state is set
+                    if (!campaignId) {
+                      setCampaignId(finalCampaignId);
+                    }
                   }
 
-                  // Redirect to manage creatives page with campaign ID
-                  window.location.href = `/sectionmodules/managecreatives?campaignId=${finalCampaignId}`;
+                  // Redirect to demo page (home)
+                  router.push("/");
                 } catch (err) {
                   setError(
                     err instanceof Error
