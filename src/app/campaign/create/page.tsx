@@ -24,6 +24,12 @@ import {
   getCreatives,
 } from "@/lib/firebaseAdmin";
 import type { Shop } from "@/types/admin";
+import type { Creative } from "@/contexts/FirebaseContext";
+import { CircleUser } from "lucide-react";
+import CampaignNameSection from "./components/CampaignNameSection";
+import ProductsSection from "./components/ProductsSection";
+import OptimizationBudgetSection from "./components/OptimizationBudgetSection";
+import ScheduleSection from "./components/ScheduleSection";
 
 export default function CreateCampaign() {
   // Default shop and account IDs
@@ -45,12 +51,24 @@ export default function CreateCampaign() {
     description: "",
     shop: "",
     account: "",
+    liveSource: "tiktok",
   });
 
   const [submitted, setSubmitted] = useState(false);
   const [pgm, setPgm] = useState(true); // true = products, false = LIVE
   const [error, setError] = useState<string | null>(null);
   const [shouldCreateOnLoad, setShouldCreateOnLoad] = useState(false);
+
+  // Creative display state
+  const [campaignAutoMode, setCampaignAutoMode] = useState<boolean>(true);
+  const [campaignSelectedCreatives, setCampaignSelectedCreatives] = useState<
+    (string | number)[]
+  >([]);
+  const [allCreatives, setAllCreatives] = useState<Creative[]>([]);
+  const [creativesLoading, setCreativesLoading] = useState(false);
+  const [videoErrors, setVideoErrors] = useState<Set<string | number>>(
+    new Set()
+  );
 
   // Load campaign data and pre-fill form
   const loadCampaignData = async (id: string) => {
@@ -66,6 +84,7 @@ export default function CreateCampaign() {
           description: campaign.description || "",
           shop: campaign.shop || DEFAULT_SHOP_ID,
           account: campaign.account || DEFAULT_ACCOUNT_ID,
+          liveSource: "tiktok",
         });
         if (campaign.type) {
           setPgm(campaign.type === "products");
@@ -74,9 +93,76 @@ export default function CreateCampaign() {
         if (campaign.shop && campaign.shop !== selectedShopId) {
           setSelectedShopId(campaign.shop);
         }
+        // Load creative selection data
+        setCampaignAutoMode(campaign.autoMode !== false);
+        setCampaignSelectedCreatives(
+          campaign.selectedCreatives || campaign.creatives || []
+        );
       }
     } catch (error) {
       console.error("Error loading campaign:", error);
+    }
+  };
+
+  // Fetch all creatives from Firebase
+  useEffect(() => {
+    const fetchCreatives = async () => {
+      if (!campaignId) {
+        setAllCreatives([]);
+        return;
+      }
+
+      try {
+        setCreativesLoading(true);
+        const creatives = await getCreatives();
+        setAllCreatives(creatives as Creative[]);
+
+        // Also refresh campaign data to get latest selectedCreatives and autoMode
+        const campaign = await getCampaign(campaignId);
+        if (campaign) {
+          setCampaignAutoMode(campaign.autoMode !== false);
+          setCampaignSelectedCreatives(
+            campaign.selectedCreatives || campaign.creatives || []
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching creatives:", error);
+      } finally {
+        setCreativesLoading(false);
+      }
+    };
+
+    fetchCreatives();
+  }, [campaignId]);
+
+  // Helper function to validate video path
+  const isValidVideoPath = (videoPath: string): boolean => {
+    if (!videoPath || typeof videoPath !== "string") return false;
+    const trimmed = videoPath.trim();
+    if (trimmed === "" || trimmed === "string") return false;
+    return trimmed.startsWith("http://") || trimmed.startsWith("https://");
+  };
+
+  // Handle video error
+  const handleVideoError = (creativeId: string | number) => {
+    setVideoErrors((prev) => new Set(prev).add(creativeId));
+  };
+
+  // Get creatives to display
+  const getDisplayCreatives = (): Creative[] => {
+    if (creativesLoading || allCreatives.length === 0) return [];
+
+    if (campaignAutoMode) {
+      // Show all creatives in auto mode
+      return allCreatives;
+    } else {
+      // Show only selected creatives in manual mode
+      const selectedIdsAsStrings = campaignSelectedCreatives.map((id) =>
+        String(id)
+      );
+      return allCreatives.filter((creative) =>
+        selectedIdsAsStrings.includes(String(creative.id))
+      );
     }
   };
 
@@ -364,6 +450,7 @@ export default function CreateCampaign() {
           description: "",
           shop: formData.shop, // Keep shop selected
           account: "", // Reset account
+          liveSource: "tiktok",
         });
         setCampaignId(null);
         setSubmitted(false);
@@ -407,7 +494,7 @@ export default function CreateCampaign() {
       <Row>
         <Col lg={9}>
           {/* Shop and Account Selection */}
-          {shops.length > 0 && (
+          {/* {shops.length > 0 && (
             <Card className="mb-4">
               <Card.Body>
                 <Form.Group className="mb-3">
@@ -460,7 +547,7 @@ export default function CreateCampaign() {
                 </Form.Group>
               </Card.Body>
             </Card>
-          )}
+          )} */}
           {/* <Row className="mb-4">
                 <div
                     type="radio" 
@@ -543,243 +630,9 @@ export default function CreateCampaign() {
 
           {pgm ? (
             <Row className="mb-4">
-              {/* Products */}
-              <Col sm={12} className="mb-4">
-                <Card>
-                  <Card.Body>
-                    <Card.Title className="text-dark mb-3">Products</Card.Title>
-                    {/* <Card.Text>Maximize your product sales during real-time livestreams.</Card.Text> */}
-                    <Col className="my-4">
-                      <input
-                        className="form-check-input me-1"
-                        type="radio"
-                        value=""
-                        id="firstCheckbox"
-                      />
-                      <label
-                        className="form-check-label"
-                        htmlFor="firstCheckbox"
-                      >
-                        All products
-                      </label>
-                    </Col>
-                    <Col className="my-2 mb-4">
-                      <input
-                        className="form-check-input me-1"
-                        type="radio"
-                        value=""
-                        id="secondCheckbox"
-                      />
-                      <label
-                        className="form-check-label mb-2"
-                        htmlFor="secondCheckbox"
-                      >
-                        Selected products
-                      </label>
-                      <br />
-                      <Button variant="secondary" className="btn-sm">
-                        Select products
-                      </Button>
-                    </Col>
-                    <Col className="my-2">
-                      <input
-                        className="form-check-input me-1"
-                        type="radio"
-                        value=""
-                        id="thirdCheckbox"
-                      />
-                      <label
-                        className="form-check-label"
-                        htmlFor="thirdCheckbox"
-                      >
-                        New products
-                      </label>
-                    </Col>
-                  </Card.Body>
-                </Card>
-              </Col>
-              {/* Optimization and budget */}
-              <Col sm={12} className="mb-4">
-                <Card>
-                  <Card.Body>
-                    <Card.Title className="text-dark mb-3">
-                      Optimization and budget
-                    </Card.Title>
-                    <Card.Text>
-                      <h6 className="text-dark">Optimization goal</h6>
-                    </Card.Text>
-                    <Alert
-                      variant="info"
-                      className="mb-4 bg-info-light text-dark border-0"
-                    >
-                      Your campaign is eligible for ROI protection. You will
-                      receive an ad credit if 90% of your target ROI is not met
-                      and your campaign meets other eligibility criteria.
-                      <a href="#" className="text-primary">
-                        {" "}
-                        View details
-                      </a>
-                    </Alert>
-                    <Card.Text className="mb-0">
-                      <h6 className="text-dark font-normal mb-0">
-                        Gross Revenue
-                      </h6>
-                    </Card.Text>
-                    <Card.Text className="mb-3">
-                      Maximize your gross revenue while achieving your target
-                      return on investment (ROI).
-                    </Card.Text>
-                    <hr className="dropdown-divider my-4 border border-secondary" />
-                    <Col className="my-2 mb-3">
-                      <label
-                        htmlFor="floatingInputValue"
-                        className="form-label"
-                      >
-                        Product ROI target
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="floatingInputValue"
-                        placeholder="2.0"
-                      />
-                    </Col>
-                    <Accordion defaultActiveKey="0" className="">
-                      <Accordion.Item
-                        eventKey="0"
-                        className=""
-                        style={{ backgroundColor: "#f8f9fa" }}
-                      >
-                        <Accordion.Header
-                          className=""
-                          style={{ backgroundColor: "#f8f9fa", border: "none" }}
-                        >
-                          A target of 2 is recommended to increase your gross
-                          revenue
-                        </Accordion.Header>
-                        <Accordion.Body>
-                          <p>
-                            <strong>
-                              How are ROI recommendations calculated?
-                            </strong>
-                          </p>
-                          <p>
-                            ROI target recommendations are based on real-time
-                            market data and your historical ROI settings. They
-                            are designed to help you increase your gross
-                            revenue. -Product ROI is the product`&apos;`s total
-                            gross revenue (not including LIVE) divided by the ad
-                            cost -You can choose whether or not to adopt these
-                            recommendations based on your specific business
-                            situation and profit margins
-                          </p>
-                        </Accordion.Body>
-                      </Accordion.Item>
-                    </Accordion>
-                    <hr className="dropdown-divider my-4 border border-secondary" />
-                    <Col className="my-2 mb-3">
-                      <label
-                        htmlFor="floatingInputValue"
-                        className="form-label"
-                      >
-                        Daily budget
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="floatingInputValue"
-                        placeholder="200.00 USD"
-                      />
-                    </Col>
-                    <Accordion defaultActiveKey="0" className="">
-                      <Accordion.Item
-                        eventKey="0"
-                        className=""
-                        style={{ backgroundColor: "#f8f9fa" }}
-                      >
-                        <Accordion.Header
-                          className=""
-                          style={{ backgroundColor: "#f8f9fa", border: "none" }}
-                        >
-                          A target of 2 is recommended to increase your gross
-                          revenue
-                        </Accordion.Header>
-                        <Accordion.Body>
-                          <p>
-                            <strong>
-                              How are ROI recommendations calculated?
-                            </strong>
-                          </p>
-                          <p>
-                            A daily budget of 200.00 USD is recommended based on
-                            your previous ads spending. Budget will only be
-                            spent when your ROI target is met.
-                          </p>
-                        </Accordion.Body>
-                      </Accordion.Item>
-                    </Accordion>
-                    <hr className="dropdown-divider my-4 border border-secondary" />
-                    <Form className="mb-3">
-                      <Form.Check // prettier-ignore
-                        type="switch"
-                        id="custom-switch"
-                        label={
-                          <div>
-                            Auto budget increase{" "}
-                            <span className="text-primary"> View details</span>
-                            <br />
-                            <small className="text-muted">
-                              Allow your daily budget to be automatically
-                              increased to optimize your campaign for higher
-                              gross revenue when your ROI target is met and your
-                              budget is about to run out.
-                            </small>
-                          </div>
-                        }
-                      />
-                    </Form>
-                    <Card>
-                      <Card.Body className="p-3 bg-secondary rounded">
-                        <div className="d-flex align-items-center">
-                          <small className="text-muted me-3">
-                            <span className="me-2">Increase amount:</span>
-                            <span className="text-dark">$100.00 USD</span>
-                          </small>
-                          <small className="text-muted me-3">
-                            <span className="me-2">Increase limit:</span>
-                            <span className="text-dark">10 times</span>
-                          </small>
-                          <small className="text-muted">
-                            <span className="me-2">Budget amount:</span>
-                            <span className="text-dark">$1,000.00 USD</span>
-                          </small>
-                        </div>
-                      </Card.Body>
-                    </Card>
-                  </Card.Body>
-                </Card>
-              </Col>
-
-              {/* Advanced optimizations */}
-              <Col sm={12} className="mb-4">
-                <Card>
-                  <Card.Body>
-                    <Card.Title className="text-dark mb-3">
-                      Advanced optimizations
-                    </Card.Title>
-                    <Card.Text>
-                      Plan ahead to improve your ad delivery during promotion
-                      days and pre-promotion days.
-                    </Card.Text>
-
-                    <Card.Text className="mb-0">
-                      <h6 className="text-dark font-normal mb-0">
-                        Special events
-                      </h6>
-                    </Card.Text>
-                  </Card.Body>
-                </Card>
-              </Col>
+              <ProductsSection />
+              <OptimizationBudgetSection />
+              {/* <AdvancedOptimizationsSection /> */}
 
               {/* Ad creative */}
               <Col sm={12} className="mb-4">
@@ -811,21 +664,154 @@ export default function CreateCampaign() {
                       creatives to view, add or manually select posts to promote
                       your products.
                     </Card.Text>
+                    <p className="fw-bold">Selected creatives:</p>
+                    {campaignId && (
+                      <div className="mt-3">
+                        {creativesLoading ? (
+                          <p className="text-muted">Loading creatives...</p>
+                        ) : (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "row",
+                              overflowX: "auto",
+                              overflowY: "hidden",
+                              gap: "12px",
+                              paddingBottom: "8px",
+                            }}
+                          >
+                            {getDisplayCreatives().length > 0 ? (
+                              getDisplayCreatives().map((creative) => {
+                                const hasError = videoErrors.has(creative.id);
+                                const isValid = isValidVideoPath(
+                                  creative.video
+                                );
+
+                                return (
+                                  <div
+                                    key={creative.id}
+                                    className="flex-shrink-0 d-flex flex-column"
+                                    style={{
+                                      width: "80px",
+                                    }}
+                                  >
+                                    {/* Video container with fixed height */}
+                                    <div
+                                      className="position-relative"
+                                      style={{
+                                        height: "120px",
+                                        width: "100%",
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      {isValid &&
+                                      !hasError &&
+                                      creative.video ? (
+                                        <video
+                                          src={creative.video}
+                                          loop
+                                          muted
+                                          autoPlay={false}
+                                          controls={false}
+                                          style={{
+                                            width: "100%",
+                                            height: "100%",
+                                            objectFit: "cover",
+                                            backgroundColor: "#f5f5f5",
+                                            borderRadius: "4px",
+                                          }}
+                                          onError={() =>
+                                            handleVideoError(creative.id)
+                                          }
+                                        />
+                                      ) : (
+                                        <div
+                                          className="d-flex flex-column align-items-center justify-content-center bg-secondary text-white rounded"
+                                          style={{
+                                            width: "100%",
+                                            height: "100%",
+                                          }}
+                                        >
+                                          <CircleUser
+                                            strokeWidth={1.5}
+                                            size={24}
+                                            className="mb-1 opacity-50"
+                                          />
+                                          <p
+                                            className="text-center mb-0 px-1"
+                                            style={{ fontSize: "8px" }}
+                                          >
+                                            No video
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {/* Name below video */}
+                                    <p
+                                      className="mt-1 mb-0 text-truncate"
+                                      style={{
+                                        fontSize: "10px",
+                                        lineHeight: "1.2",
+                                        minHeight: "24px",
+                                        display: "block",
+                                        width: "100%",
+                                      }}
+                                      title={
+                                        creative.name || "Unnamed creative"
+                                      }
+                                    >
+                                      {creative.name || "Unnamed creative"}
+                                    </p>
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <p
+                                className="text-muted"
+                                style={{ fontSize: "14px" }}
+                              >
+                                {campaignAutoMode
+                                  ? "No creatives available"
+                                  : "No creatives selected"}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <Accordion defaultActiveKey="" className="">
+                      <Accordion.Item
+                        eventKey="0"
+                        className=""
+                        style={{ backgroundColor: "#f8f9fa" }}
+                      >
+                        <Accordion.Header
+                          className="text-dark"
+                          style={{
+                            backgroundColor: "#f8f9fa",
+                            border: "none",
+                            fontSize: "14px",
+                          }}
+                        >
+                          <span className="text-primary me-2">0/4 </span>
+                          Creative best practices completed
+                        </Accordion.Header>
+                        <Accordion.Body>
+                          <p style={{ fontSize: "14px" }}>
+                            <strong>Your creative best practices</strong>
+                          </p>
+                          <p>Place best practices here</p>
+                        </Accordion.Body>
+                      </Accordion.Item>
+                    </Accordion>
                   </Card.Body>
                 </Card>
               </Col>
 
-              {/* Schedule */}
-              <Col sm={12} className="mb-4">
-                <Card>
-                  <Card.Body>
-                    <Card.Title className="text-dark mb-3">Schedule</Card.Title>
-                  </Card.Body>
-                </Card>
-              </Col>
+              <ScheduleSection />
 
               {/* Brand safety and suitability */}
-              <Col sm={12} className="mb-4">
+              {/* <Col sm={12} className="mb-4">
                 <Card>
                   <Card.Body>
                     <Card.Title className="text-dark mb-3">
@@ -833,21 +819,15 @@ export default function CreateCampaign() {
                     </Card.Title>
                   </Card.Body>
                 </Card>
-              </Col>
+              </Col> */}
 
-              {/* Campaign name */}
-              <Col sm={12} className="mb-4">
-                <Card>
-                  <Card.Body>
-                    <Card.Title className="text-dark mb-3">
-                      Campaign name
-                    </Card.Title>
-                  </Card.Body>
-                </Card>
-              </Col>
+              <CampaignNameSection
+                campaignName={formData.campaignName}
+                onChange={handleChange}
+              />
 
               {/* Disclaimer block */}
-              <Col sm={12} className="mb-4">
+              {/* <Col sm={12} className="mb-4">
                 <Card>
                   <Card.Body>
                     <Card.Text className="text-dark mb-3">
@@ -855,10 +835,10 @@ export default function CreateCampaign() {
                     </Card.Text>
                   </Card.Body>
                 </Card>
-              </Col>
+              </Col> */}
 
               {/* Buttons */}
-              <Col sm={12} className="mb-4">
+              {/* <Col sm={12} className="mb-4">
                 <Card>
                   <Card.Body>
                     <Button variant="primary" size="sm" className="me-3">
@@ -869,24 +849,196 @@ export default function CreateCampaign() {
                     </Button>
                   </Card.Body>
                 </Card>
-              </Col>
+              </Col> */}
             </Row>
           ) : (
             <Row className="mb-4">
-              <Col>
-                <Card>
-                  <Card.Body>
-                    <Card.Title className="text-dark">Promote LIVE</Card.Title>
-                    <Card.Text>
-                      Maximize your product sales during real-time livestreams.
-                    </Card.Text>
-                  </Card.Body>
-                </Card>
+              <Col sm={12}>
+                <Row className="mb-4">
+                  <Col sm={12}>
+                    <Card>
+                      <Card.Body>
+                        <Card.Title className="text-dark mt-2">
+                          LIVE source
+                        </Card.Title>
+                        <Card.Text>
+                          Choose where to get the LIVE you want to promote.
+                        </Card.Text>
+                        <Form.Group className="mb-3">
+                          <Form.Select
+                            name="liveSource"
+                            value={formData.liveSource}
+                            onChange={handleChange}
+                          >
+                            <option value="tiktok">TikTok</option>
+                            <option value="youtube">YouTube</option>
+                          </Form.Select>
+                        </Form.Group>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                </Row>
+                <OptimizationBudgetSection />
+                <Col sm={12} className="mb-4">
+                  <Card>
+                    <Card.Body>
+                      <Card.Title className="text-dark mb-3">
+                        Ad creative
+                        {campaignId ? (
+                          <Link
+                            className="btn btn-secondary btn-sm float-end"
+                            href={`/sectionmodules/managecreatives?campaignId=${campaignId}&pgm=${pgm}`}
+                          >
+                            Edit
+                          </Link>
+                        ) : (
+                          <span
+                            className="text-muted float-end"
+                            style={{ fontSize: "14px" }}
+                          >
+                            Save campaign first to edit creatives
+                          </span>
+                        )}
+                      </Card.Title>
+                      <Card.Text>
+                        Autoselecting ad creatives optimizes your campaign
+                        performance by using the best available posts and images
+                        featuring your products. Your creative will appear in
+                        the format of video, carousel and product card. Manage
+                        creatives to view, add or manually select posts to
+                        promote your products.
+                        {campaignId && (
+                          <div className="mt-3">
+                            {creativesLoading ? (
+                              <p className="text-muted">Loading creatives...</p>
+                            ) : (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "row",
+                                  overflowX: "auto",
+                                  overflowY: "hidden",
+                                  gap: "12px",
+                                  paddingBottom: "8px",
+                                }}
+                              >
+                                {getDisplayCreatives().length > 0 ? (
+                                  getDisplayCreatives().map((creative) => {
+                                    const hasError = videoErrors.has(
+                                      creative.id
+                                    );
+                                    const isValid = isValidVideoPath(
+                                      creative.video
+                                    );
+
+                                    return (
+                                      <div
+                                        key={creative.id}
+                                        className="flex-shrink-0 d-flex flex-column"
+                                        style={{
+                                          width: "80px",
+                                        }}
+                                      >
+                                        {/* Video container with fixed height */}
+                                        <div
+                                          className="position-relative"
+                                          style={{
+                                            height: "120px",
+                                            width: "100%",
+                                            flexShrink: 0,
+                                          }}
+                                        >
+                                          {isValid &&
+                                          !hasError &&
+                                          creative.video ? (
+                                            <video
+                                              src={creative.video}
+                                              loop
+                                              muted
+                                              autoPlay={false}
+                                              controls={false}
+                                              style={{
+                                                width: "100%",
+                                                height: "100%",
+                                                objectFit: "cover",
+                                                backgroundColor: "#f5f5f5",
+                                                borderRadius: "4px",
+                                              }}
+                                              onError={() =>
+                                                handleVideoError(creative.id)
+                                              }
+                                            />
+                                          ) : (
+                                            <div
+                                              className="d-flex flex-column align-items-center justify-content-center bg-secondary text-white rounded"
+                                              style={{
+                                                width: "100%",
+                                                height: "100%",
+                                              }}
+                                            >
+                                              <CircleUser
+                                                strokeWidth={1.5}
+                                                size={24}
+                                                className="mb-1 opacity-50"
+                                              />
+                                              <p
+                                                className="text-center mb-0 px-1"
+                                                style={{ fontSize: "8px" }}
+                                              >
+                                                No video
+                                              </p>
+                                            </div>
+                                          )}
+                                        </div>
+                                        {/* Name below video */}
+                                        <p
+                                          className="mt-1 mb-0 text-truncate"
+                                          style={{
+                                            fontSize: "10px",
+                                            lineHeight: "1.2",
+                                            minHeight: "24px",
+                                            display: "block",
+                                            width: "100%",
+                                          }}
+                                          title={
+                                            creative.name || "Unnamed creative"
+                                          }
+                                        >
+                                          {creative.name || "Unnamed creative"}
+                                        </p>
+                                      </div>
+                                    );
+                                  })
+                                ) : (
+                                  <p
+                                    className="text-muted"
+                                    style={{ fontSize: "14px" }}
+                                  >
+                                    {campaignAutoMode
+                                      ? "No creatives available"
+                                      : "No creatives selected"}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </Card.Text>
+                    </Card.Body>
+                  </Card>
+                </Col>
+
+                <ScheduleSection />
+                <CampaignNameSection
+                  campaignName={formData.campaignName}
+                  onChange={handleChange}
+                />
               </Col>
             </Row>
           )}
 
-          <Card>
+          {/*************************************************************** HIDDEN FORM FOR CONTROL DO NOT DELETE THIS FORM ***************************************************************/}
+          <Card className="d-none">
             <Card.Body className="p-4">
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">

@@ -6,7 +6,6 @@ import styles from "./SideNav.module.css";
 
 interface NavItem {
   href: string;
-  icon: string;
   label: string;
 }
 
