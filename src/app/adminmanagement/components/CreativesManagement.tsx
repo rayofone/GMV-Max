@@ -1,14 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Table,
-  Button,
-  Modal,
-  Form,
-  Alert,
-  Badge,
-} from "react-bootstrap";
+import { Table, Button, Modal, Form, Alert, Badge } from "react-bootstrap";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import {
   getCreatives,
@@ -46,6 +39,7 @@ export default function CreativesManagement() {
       | "Custom post"
       | "AIGC images",
     caption: "",
+    source: "",
   });
 
   useEffect(() => {
@@ -61,55 +55,60 @@ export default function CreativesManagement() {
         getAccounts(),
         getShops(),
       ]);
+
+      console.log("Loaded data:", {
+        creatives: creativesData.length,
+        accounts: accountsData.length,
+        shops: shopsData.length,
+      });
+
       setCreatives(creativesData);
-      
-      // Master admin or regular admin sees all data
-      if (isMasterAdmin || userData?.role === "admin") {
-        setAccounts(accountsData);
-        setShops(shopsData);
-      } else if (userData?.shops && userData.shops.length > 0) {
-        // Filter accounts that have user's shops
-        const filteredAccounts = accountsData.filter((account) =>
-          account.shops?.some((shopId) => userData.shops?.includes(shopId))
-        );
-        setAccounts(filteredAccounts);
-        
-        // Filter shops to only user's shops
-        const filteredShops = shopsData.filter((shop) =>
-          userData.shops?.includes(shop.id || "")
-        );
-        setShops(filteredShops);
-        
-        // Auto-select first shop if only one
-        if (filteredShops.length === 1 && !formData.shop) {
-          setFormData((prev) => ({ ...prev, shop: filteredShops[0].id || "" }));
-        }
-      } else {
-        setAccounts([]);
-        setShops([]);
-      }
+
+      // Always show all shops and accounts regardless of affiliation
+      setAccounts(accountsData);
+      setShops(shopsData);
+
+      console.log(
+        "State set - accounts:",
+        accountsData.length,
+        "shops:",
+        shopsData.length
+      );
     } catch (err) {
       setError("Failed to load data");
-      console.error(err);
+      console.error("Error loading data:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOpenModal = (creative?: Creative) => {
-    if (creative) {
-      setEditingCreative(creative);
+  const handleOpenModal = async (creative?: Creative) => {
+    // Ensure data is loaded before opening modal
+    if (accounts.length === 0 || shops.length === 0) {
+      await loadData();
+    }
+
+    if (creative && creative.id) {
+      // Create a copy of the creative to avoid reference issues
+      const creativeToEdit = {
+        ...creative,
+        id: creative.id, // Ensure ID is preserved
+      };
+      console.log("Opening modal for editing creative:", creativeToEdit);
+      setEditingCreative(creativeToEdit);
       setFormData({
-        account: creative.account,
-        authorized: creative.authorized,
-        name: creative.name,
-        shop: creative.shop,
-        type: creative.type,
+        account: creative.account || "",
+        authorized: creative.authorized || false,
+        name: creative.name || "",
+        shop: creative.shop || "",
+        type: creative.type || "Video",
         video: creative.video || "",
-        videoType: creative.videoType,
+        videoType: creative.videoType || "TikTok post",
         caption: creative.caption || "",
+        source: creative.source || "",
       });
     } else {
+      console.log("Opening modal for creating new creative");
       setEditingCreative(null);
       setFormData({
         account: "",
@@ -120,6 +119,7 @@ export default function CreativesManagement() {
         video: "",
         videoType: "TikTok post",
         caption: "",
+        source: "",
       });
     }
     setShowModal(true);
@@ -137,6 +137,7 @@ export default function CreativesManagement() {
       video: "",
       videoType: "TikTok post",
       caption: "",
+      source: "",
     });
   };
 
@@ -144,16 +145,57 @@ export default function CreativesManagement() {
     e.preventDefault();
     try {
       setError(null);
-      if (editingCreative?.id) {
-        await updateCreative(editingCreative.id, formData);
+
+      // Store editingCreative.id in a variable to ensure we have it
+      const creativeId = editingCreative?.id;
+
+      console.log("handleSubmit - editingCreative:", editingCreative);
+      console.log("handleSubmit - creativeId:", creativeId);
+      console.log("handleSubmit - formData:", formData);
+
+      if (creativeId) {
+        // Always update all fields when editing (not just changed ones)
+        // This ensures we save the current form state
+        const updates: Partial<Omit<Creative, "id">> = {
+          account: formData.account || "",
+          authorized: formData.authorized,
+          name: formData.name,
+          shop: formData.shop || "",
+          type: formData.type,
+          video: formData.video || "",
+          videoType: formData.videoType,
+          caption: formData.caption || "",
+          source: formData.source || "",
+        };
+
+        console.log(
+          "Updating creative with ID:",
+          creativeId,
+          "updates:",
+          updates
+        );
+        await updateCreative(creativeId, updates);
       } else {
-        await createCreative(formData);
+        // For create, only include fields that have values
+        const createData: Omit<Creative, "id"> = {
+          account: formData.account || "",
+          authorized: formData.authorized,
+          name: formData.name,
+          shop: formData.shop || "",
+          type: formData.type,
+          video: formData.video || "",
+          videoType: formData.videoType,
+          caption: formData.caption || "",
+          source: formData.source || "",
+        };
+        console.log("Creating new creative:", createData);
+        await createCreative(createData);
       }
       handleCloseModal();
       loadData();
     } catch (err) {
       setError("Failed to save creative");
-      console.error(err);
+      console.error("Error in handleSubmit:", err);
     }
   };
 
@@ -201,10 +243,8 @@ export default function CreativesManagement() {
             <tr key={creative.id}>
               <td>{creative.name}</td>
               <td>
-                {
-                  accounts.find((acc) => acc.id === creative.account)?.name ||
-                  creative.account
-                }
+                {accounts.find((acc) => acc.id === creative.account)?.name ||
+                  creative.account}
               </td>
               <td>
                 {shops.find((s) => s.id === creative.shop)?.name ||
@@ -264,15 +304,25 @@ export default function CreativesManagement() {
                 onChange={(e) =>
                   setFormData({ ...formData, account: e.target.value })
                 }
-                required
               >
-                <option value="">Select Account</option>
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.name}
+                <option value="">Select Account (Optional)</option>
+                {accounts.length > 0 ? (
+                  accounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.name}
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>
+                    No accounts available
                   </option>
-                ))}
+                )}
               </Form.Select>
+              {accounts.length === 0 && (
+                <Form.Text className="text-muted">
+                  No accounts found. Please create accounts first.
+                </Form.Text>
+              )}
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Shop</Form.Label>
@@ -281,15 +331,25 @@ export default function CreativesManagement() {
                 onChange={(e) =>
                   setFormData({ ...formData, shop: e.target.value })
                 }
-                required
               >
-                <option value="">Select Shop</option>
-                {shops.map((shop) => (
-                  <option key={shop.id} value={shop.id}>
-                    {shop.name}
+                <option value="">Select Shop (Optional)</option>
+                {shops.length > 0 ? (
+                  shops.map((shop) => (
+                    <option key={shop.id} value={shop.id}>
+                      {shop.name}
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>
+                    No shops available
                   </option>
-                ))}
+                )}
               </Form.Select>
+              {shops.length === 0 && (
+                <Form.Text className="text-muted">
+                  No shops found. Please create shops first.
+                </Form.Text>
+              )}
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Type</Form.Label>
@@ -352,6 +412,17 @@ export default function CreativesManagement() {
               />
             </Form.Group>
             <Form.Group className="mb-3">
+              <Form.Label>Source</Form.Label>
+              <Form.Control
+                type="text"
+                value={formData.source}
+                onChange={(e) =>
+                  setFormData({ ...formData, source: e.target.value })
+                }
+                placeholder="Enter source (e.g., TikTok, Instagram, etc.)"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
               <Form.Check
                 type="checkbox"
                 label="Authorized"
@@ -375,4 +446,3 @@ export default function CreativesManagement() {
     </div>
   );
 }
-

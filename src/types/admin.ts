@@ -35,6 +35,7 @@ export interface Creative {
   videoType: "TikTok post" | "Authorized post" | "Affiliate post" | "Custom post" | "AIGC images";
   caption?: string;
   preview?: string;
+  source?: string; // Source of the creative
   campaigns?: string[]; // Array of campaign IDs this creative is used in
   createdAt?: Date;
   updatedAt?: Date;
