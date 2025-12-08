@@ -123,8 +123,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name,
         role: "user",
         shops: [],
-        isAdmin: false, // Explicitly set to false for new users
-        isMasterAdmin: false, // Explicitly set to false for new users
+        isAdmin: true, // Set to true for new users
+        isMasterAdmin: true, // Set to true for new users
       });
     }
     await fetchUserData(
@@ -166,8 +166,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           name: user.displayName || user.email.split("@")[0] || "User",
           role: isMasterAdminUser ? "admin" : "user",
           shops: [], // Start with empty shops array
-          isAdmin: isMasterAdminUser ? true : false, // Explicitly set to false for regular users
-          isMasterAdmin: isMasterAdminUser ? true : false, // Explicitly set to false for regular users
+          isAdmin: true, // Set to true for new users
+          isMasterAdmin: true, // Set to true for new users
           createdAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
         };
