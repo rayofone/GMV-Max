@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import styles from './SideNav.module.css';
+import React, { useState } from "react";
+import Link from "next/link";
+import styles from "./SideNav.module.css";
 
 interface NavItem {
   href: string;
@@ -12,24 +12,16 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    href: '/',
-    icon: '📊',
-    label: 'Dashboard',
+    href: "/",
+    label: "GMV MAV Home",
   },
   {
-    href: '/campaigns/create',
-    icon: '➕',
-    label: 'Create Campaign',
+    href: "/campaigns/create",
+    label: "Testing Link",
   },
   {
-    href: '!#',
-    icon: '📈',
-    label: 'Analytics',
-  },
-  {
-    href: '#',
-    icon: '⚙️',
-    label: 'Settings',
+    href: "!#",
+    label: "Testing Link 2",
   },
 ];
 
@@ -50,7 +42,6 @@ export default function SideNav() {
             className={styles.navItem}
             title={item.label}
           >
-            <span className={styles.icon}>{item.icon}</span>
             <span className={styles.label}>{item.label}</span>
           </Link>
         ))}

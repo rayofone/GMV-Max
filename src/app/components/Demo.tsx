@@ -116,12 +116,25 @@ export default function Demo() {
 
       {/* MAIN CONTENT */}
       <div
-        style={{ display: "flex", flex: 1, minHeight: "calc(100vh - 56px)" }}
+        style={{
+          display: "flex",
+          flex: 1,
+          minHeight: "calc(100vh - 56px)",
+          flexWrap: "nowrap",
+          overflowX: "auto",
+        }}
       >
-        <Container className="py-3" style={{ flex: 1, overflowY: "auto" }}>
-          <Row>
+        <Container
+          className="py-3"
+          style={{ flex: 1, overflowY: "auto", minWidth: 0 }}
+        >
+          <Row className="g-0" style={{ flexWrap: "nowrap" }}>
             {/* LEFT COLUMN: SIDENAV */}
-            <Col xs="auto" className="pe-0">
+            <Col
+              xs="auto"
+              className="pe-0"
+              style={{ flexShrink: 0, minWidth: "auto" }}
+            >
               <div
                 style={{
                   position: "sticky",
@@ -136,7 +149,7 @@ export default function Demo() {
             </Col>
 
             {/* RIGHT COLUMN: MAIN CONTENT CANVAS */}
-            <Col>
+            <Col style={{ minWidth: 0, flex: 1 }}>
               {/* GROWTH CENTER */}
               <Row className="mb-4">
                 <Col>

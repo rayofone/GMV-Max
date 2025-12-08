@@ -35,6 +35,22 @@ a {
   text-decoration: none;
 }
 
+/* Table overrides */
+.table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+thead {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #737373 !important;
+}
+tbody {
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  color: #737373 !important;
+}
+
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
@@ -60,7 +76,7 @@ a {
   --bs-primary-rgb: 0, 153, 149;
   --bs-secondary: #e9e9e9;
   --bs-secondary-rgb: 233, 233, 233;
-  --bs-info: #379AFE;
+  --bs-info: #379afe;
   --bs-info-rgba: rgba(81, 146, 251, 0.15);
 }
 
@@ -95,14 +111,14 @@ a {
 }
 
 .bg-info {
-  background-color: #379AFE !important;
+  background-color: #379afe !important;
 }
 .text-info {
-  color: #379AFE !important;
+  color: #379afe !important;
 }
 
 .bg-info-light {
-  background-color: #E2ECFF !important;
+  background-color: #e2ecff !important;
 }
 
 .accordion {
@@ -119,7 +135,7 @@ a {
 
 /* Dropdown override */
 .dropdown-toggle:after {
-  display: none !important
+  display: none !important;
 }
 
 /* Remove all card borders */
@@ -161,4 +177,3 @@ p {
     margin-left: 80px !important;
   }
 }
-

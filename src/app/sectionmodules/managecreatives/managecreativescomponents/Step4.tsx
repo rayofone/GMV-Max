@@ -843,71 +843,171 @@ export default function Step4({
                     className="selected-creatives-scroll"
                   >
                     {(() => {
-                      // Get all selected creatives from Firebase (includes both TikTok posts and Affiliates)
-                      const selectedCreatives = allCreativesFromFirebase.filter(
-                        (creative) => selectedCreativeIds.includes(creative.id)
+                      // Combine all possible creatives from both tabs to ensure we have everything
+                      // TikTok posts from props + Affiliates from Firebase + all from Firebase as fallback
+                      const allPossibleCreatives = [
+                        ...creativesWithVideos,
+                        ...affiliateCreativesFromFirebase,
+                        ...allCreativesFromFirebase,
+                      ];
+
+                      // Remove duplicates by ID
+                      const uniqueCreatives = Array.from(
+                        new Map(
+                          allPossibleCreatives.map((creative) => [
+                            String(creative.id),
+                            creative,
+                          ])
+                        ).values()
                       );
 
-                      return selectedCreatives.map((creative) => {
-                        const hasError = videoErrors.has(creative.id);
-                        const isValid = isValidVideoPath(creative.video);
+                      // Convert IDs to strings for consistent comparison
+                      const selectedIdsAsStrings = selectedCreativeIds.map(
+                        (id) => String(id)
+                      );
 
+                      // Filter to get only selected creatives (regardless of videoType or type)
+                      const selectedCreatives = uniqueCreatives.filter(
+                        (creative) =>
+                          selectedIdsAsStrings.includes(String(creative.id))
+                      );
+
+                      console.log(
+                        "Selected Creative IDs:",
+                        selectedCreativeIds
+                      );
+                      console.log(
+                        "All Possible Creatives (combined):",
+                        uniqueCreatives.length
+                      );
+                      console.log(
+                        "Filtered Selected Creatives:",
+                        selectedCreatives.length,
+                        selectedCreatives
+                      );
+
+                      if (selectedCreatives.length === 0) {
                         return (
                           <div
-                            key={creative.id}
-                            className="position-relative flex-shrink-0"
-                            style={{
-                              height: "120px",
-                              width: "80px",
-                            }}
+                            className="text-muted"
+                            style={{ fontSize: "14px" }}
                           >
-                            {isValid && !hasError && creative.video ? (
-                              <video
-                                src={creative.video}
-                                loop
-                                muted
-                                autoPlay={false}
-                                controls={false}
-                                style={{
-                                  width: "100%",
-                                  height: "100%",
-                                  objectFit: "cover",
-                                  backgroundColor: "#f5f5f5",
-                                  borderRadius: "4px",
-                                }}
-                                onError={() => handleVideoError(creative.id)}
-                              />
-                            ) : (
-                              <div
-                                className="d-flex flex-column align-items-center justify-content-center bg-secondary text-white rounded"
-                                style={{
-                                  width: "100%",
-                                  height: "100%",
-                                }}
-                              >
-                                <CircleUser
-                                  strokeWidth={1.5}
-                                  size={24}
-                                  className="mb-1 opacity-50"
-                                />
-                                <p
-                                  className="text-center mb-0 px-1"
-                                  style={{ fontSize: "8px" }}
-                                >
-                                  No video
-                                </p>
-                              </div>
-                            )}
-                            <p
-                              className="mt-1 mb-0 text-truncate"
-                              style={{ fontSize: "10px" }}
-                              title={creative.name}
-                            >
-                              {creative.name}
-                            </p>
+                            No creatives selected
                           </div>
                         );
-                      });
+                      }
+
+                      return (
+                        <>
+                          {selectedCreatives.map((creative) => {
+                            const hasError = videoErrors.has(creative.id);
+                            const isValid = isValidVideoPath(creative.video);
+
+                            return (
+                              <div
+                                key={creative.id}
+                                className="flex-shrink-0 d-flex flex-column"
+                                style={{
+                                  width: "80px",
+                                }}
+                              >
+                                {/* Video container with fixed height */}
+                                <div
+                                  className="position-relative"
+                                  style={{
+                                    height: "120px",
+                                    width: "100%",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {/* Remove button */}
+                                  {onCreativeToggle && (
+                                    <button
+                                      onClick={() =>
+                                        onCreativeToggle(creative.id)
+                                      }
+                                      className="position-absolute"
+                                      style={{
+                                        top: "4px",
+                                        right: "4px",
+                                        zIndex: 10,
+                                        backgroundColor: "rgba(0, 0, 0, 0.7)",
+                                        color: "white",
+                                        border: "none",
+                                        borderRadius: "50%",
+                                        width: "20px",
+                                        height: "20px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        cursor: "pointer",
+                                        fontSize: "12px",
+                                        padding: 0,
+                                      }}
+                                      title="Remove from selection"
+                                    >
+                                      ×
+                                    </button>
+                                  )}
+                                  {isValid && !hasError && creative.video ? (
+                                    <video
+                                      src={creative.video}
+                                      loop
+                                      muted
+                                      autoPlay={false}
+                                      controls={false}
+                                      style={{
+                                        width: "100%",
+                                        height: "100%",
+                                        objectFit: "cover",
+                                        backgroundColor: "#f5f5f5",
+                                        borderRadius: "4px",
+                                      }}
+                                      onError={() =>
+                                        handleVideoError(creative.id)
+                                      }
+                                    />
+                                  ) : (
+                                    <div
+                                      className="d-flex flex-column align-items-center justify-content-center bg-secondary text-white rounded"
+                                      style={{
+                                        width: "100%",
+                                        height: "100%",
+                                      }}
+                                    >
+                                      <CircleUser
+                                        strokeWidth={1.5}
+                                        size={24}
+                                        className="mb-1 opacity-50"
+                                      />
+                                      <p
+                                        className="text-center mb-0 px-1"
+                                        style={{ fontSize: "8px" }}
+                                      >
+                                        No video
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                                {/* Name below video */}
+                                <p
+                                  className="mt-1 mb-0 text-truncate"
+                                  style={{
+                                    fontSize: "10px",
+                                    lineHeight: "1.2",
+                                    minHeight: "24px",
+                                    display: "block",
+                                    width: "100%",
+                                  }}
+                                  title={creative.name || "Unnamed creative"}
+                                >
+                                  {creative.name || "Unnamed creative"}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </>
+                      );
                     })()}
                   </div>
                 </div>
